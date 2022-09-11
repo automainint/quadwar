@@ -24,7 +24,7 @@ typedef struct {
 
 static_assert(sizeof(pixel_t) == 4, "pixel_t should be 4 bytes long");
 
-int init() {
+int init(void) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("SDL_Init failed: %s\n", SDL_GetError());
     return -1;
@@ -33,7 +33,7 @@ int init() {
   return 0;
 }
 
-SDL_Window *create_window() {
+SDL_Window *create_window(void) {
   SDL_Window *window = SDL_CreateWindow(
       "Quadwar", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
       DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
@@ -168,7 +168,7 @@ void event_loop(SDL_Renderer *renderer) {
   }
 }
 
-void run() {
+void run(void) {
   if (init() != 0)
     return;
 

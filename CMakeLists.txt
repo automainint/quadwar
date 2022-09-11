@@ -24,7 +24,7 @@ if(NOT kit_FOUND)
     kit
     GIT_REPOSITORY https://github.com/automainint/kit.git
     GIT_TAG dev)
-  set(KIT_ENABLE_TESTING OFF)
+  set(KIT_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(kit)
 endif()
 
