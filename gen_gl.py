@@ -2,9 +2,9 @@
 
 def main():
   import xml.etree.ElementTree
-  import os, sys, shutil
+  import os, shutil
 
-  folder    = os.path.join('source', 'quadwar', 'gl')
+  folder = os.path.join('source', 'quadwar', 'gl')
   gl_folder = '.gen_gl'
 
   def update_repo():
@@ -21,11 +21,11 @@ def main():
       s = text
       if s[0:8] == 'typedef ':
         s = s[8:]
-      if s[len(s)-1] == ' ':
-        s = s[0:len(s)-1];
+      if s[len(s) - 1] == ' ':
+        s = s[0:len(s) - 1];
       return s
     return ''
-    
+
   def adjust_khronos(text):
     if text != None:
       if text == 'khronos_int8_t':
@@ -69,9 +69,9 @@ def main():
         return 'int32_t'
       return text
     return ''
-   
+
   def adjust_arg(arg):
-    c = arg[len(arg)-1]
+    c = arg[len(arg) - 1]
     if c != ' ' and c != '*':
       return arg + ' '
     return arg
@@ -107,17 +107,17 @@ def main():
             decl = adjust_type(decl)
             if type.find('apientry') != None:
               decl += 'GL_API *'
-            types.append('typedef ' + decl + ('' if decl[len(decl)-1] == '*' else ' ') + name.text + name.tail)
+            types.append('typedef ' + decl + ('' if decl[len(decl) - 1] == '*' else ' ') + name.text + name.tail)
     elif child.tag == 'enums':
       for en in child:
         at = en.attrib
         if 'value' in at and 'name' in at:
           name = at['name']
-          enums.append([ name, at['value'].lower() ])
+          enums.append([name, at['value'].lower()])
     elif child.tag == 'commands':
       for cmd in child:
         proto = cmd.find('proto')
-        proto_full = ''      
+        proto_full = ''
         if proto.text != None:
           proto_full = proto.text
         ptype = proto.find('ptype')
@@ -137,10 +137,10 @@ def main():
               if atype.tail != None:
                 type_full += atype.tail
             if aname != None:
-              args.append([ type_full, aname.text ])
+              args.append([type_full, aname.text])
             else:
-              args.append([ type_full, '' ])
-        funcs.append([ name, proto_full, args, 0, '' ])
+              args.append([type_full, ''])
+        funcs.append([name, proto_full, args, 0, ''])
 
   for child in root:
     if child.tag == 'extensions':
@@ -156,7 +156,7 @@ def main():
                 cmds.append(i)
                 break
         if len(cmds) > 0:
-          extensions.append([ name, cmds ])
+          extensions.append([name, cmds])
 
   enums_buf = enums
   enums = list()
@@ -166,7 +166,7 @@ def main():
   def is_64(x):
     value = int(x, 0)
     return value > 0xffffffff
-    
+
   def is_signed(x):
     value = int(x, 0)
     return value < 0
@@ -189,6 +189,9 @@ def main():
 
   out = open(os.path.join(folder, 'types.inl.h'), 'w')
 
+  out.write('#ifndef QUADWAR_GL_TYPES_INL_H\n')
+  out.write('#define QUADWAR_GL_TYPES_INL_H\n\n')
+
   out.write('#include <stddef.h>\n')
   out.write('#include <stdint.h>\n\n')
   out.write('#if (_MSC_VER >= 800) || defined(_STDCALL_SUPPORTED)\n')
@@ -199,36 +202,34 @@ def main():
   for type in types:
     out.write(type + '\n')
 
+  out.write('\n')
+  out.write('#endif\n')
+
   out = open(os.path.join(folder, 'enums.inl.h'), 'w')
+
+  out.write('#ifndef QUADWAR_GL_ENUMS_INL_H\n')
+  out.write('#define QUADWAR_GL_ENUMS_INL_H\n\n')
 
   out.write('#include "types.inl.h"\n\n')
 
-  comma = ','
-  out.write('enum glenum_ {\n')
   for i, en in enumerate(enums):
-    if i + 1 == len(enums):
-      comma = ''
-    out.write('  ' + en[0] + ' = ' + en[1] + comma + '\n')
-  out.write('};\n')
+    out.write('#define ' + en[0] + ' ' + en[1]  + '\n')
+  out.write('\n')
 
-  comma = ','
-  out.write('\nenum glenum64_ {\n')
   for i, en in enumerate(enums64):
-    if i + 1 == len(enums64):
-      comma = ''
-    out.write('  ' + en[0] + ' = ' + en[1] + comma + '\n')
-  out.write('};\n')
+    out.write('#define ' + en[0] + ' ' + en[1]  + '\n')
+  out.write('\n')
 
-  comma = ','
-  out.write('\nenum glenum_int32_ {\n')
   for i, en in enumerate(enumsSigned):
-    if i + 1 == len(enumsSigned):
-      comma = ''
-    out.write('  ' + en[0] + ' = ' + en[1] + comma + '\n')
-  out.write('};\n')
+    out.write('#define ' + en[0] + ' ' + en[1]  + '\n')
+  out.write('\n')
+
+  out.write('#endif\n')
 
   out = open(os.path.join(folder, 'decls.inl.h'), 'w')
 
+  out.write('#ifndef QUADWAR_GL_DECLS_INL_H\n')
+  out.write('#define QUADWAR_GL_DECLS_INL_H\n\n')
   out.write('#include "types.inl.h"\n\n')
 
   for f in funcs:
@@ -239,12 +240,21 @@ def main():
   for f in funcs:
     out.write('extern pfn_' + f[0] + ' ' + f[0] + ';\n')
 
+  out.write('\n')
+  out.write('#endif\n')
+
   out = open(os.path.join(folder, 'funcs.inl.h'), 'w')
+
+  out.write('#ifndef QUADWAR_GL_FUNCS_INL_H\n')
+  out.write('#define QUADWAR_GL_FUNCS_INL_H\n\n')
 
   out.write('#include "decls.inl.h"\n\n')
 
   for f in funcs:
     out.write('pfn_' + f[0] + ' ' + f[0] + ' = NULL;\n')
+
+  out.write('\n')
+  out.write('#endif\n')
 
   out = open(os.path.join(folder, 'loads.inl.h'), 'w')
 
@@ -307,9 +317,9 @@ def main():
       if is_equals(k[0], key):
         return keys
     res = keys
-    res.append([ key, list() ])
+    res.append([key, list()])
     return res
-   
+
   def append_to(keys, key, value):
     """
       keys  - list or (list -> list) pairs
@@ -350,6 +360,7 @@ def main():
     for name in ex[0]:
       out.write('  SAVE_EXTENSION_("' + name + '", status_);\n');
     out.write('}\n')
+
 
 if __name__ == '__main__':
   main()

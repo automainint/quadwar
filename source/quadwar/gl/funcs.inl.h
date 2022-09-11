@@ -1,3 +1,6 @@
+#ifndef QUADWAR_GL_FUNCS_INL_H
+#define QUADWAR_GL_FUNCS_INL_H
+
 #include "decls.inl.h"
 
 pfn_glAccum glAccum = NULL;
@@ -3291,3 +3294,5 @@ pfn_glSignalVkSemaphoreNV glSignalVkSemaphoreNV = NULL;
 pfn_glSignalVkFenceNV glSignalVkFenceNV = NULL;
 pfn_glFramebufferParameteriMESA glFramebufferParameteriMESA = NULL;
 pfn_glGetFramebufferParameterivMESA glGetFramebufferParameterivMESA = NULL;
+
+#endif

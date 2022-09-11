@@ -1,3 +1,6 @@
+#ifndef QUADWAR_GL_TYPES_INL_H
+#define QUADWAR_GL_TYPES_INL_H
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -47,3 +50,5 @@ typedef void (GL_API *GLDEBUGPROCAMD)(GLuint id,GLenum category,GLenum severity,
 typedef uint16_t GLhalfNV;
 typedef GLintptr GLvdpauSurfaceNV;
 typedef void (GL_API *GLVULKANPROCNV)(void);
+
+#endif

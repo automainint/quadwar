@@ -11,28 +11,17 @@
 
 enum { DEFAULT_WINDOW_WIDTH = 1024, DEFAULT_WINDOW_HEIGHT = 768 };
 
-typedef struct {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-  uint8_t a;
-} pixel_t;
-
-typedef struct {
-  int          width;
-  int          height;
-  SDL_Texture *texture;
-} render_buffer_t;
-
-static_assert(sizeof(pixel_t) == 4, "pixel_t should be 4 bytes long");
+static void log_print_(char const *const message) {
+  printf("%s", message);
+}
 
 int init(void) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("SDL_Init failed: %s\n", SDL_GetError());
-    return -1;
+    return QW_ERROR;
   }
 
-  return 0;
+  return QW_OK;
 }
 
 SDL_Window *create_window(void) {
@@ -64,73 +53,28 @@ SDL_Renderer *create_renderer(SDL_Window *window) {
   else
     printf("SDL renderer: %s\n", info.name);
 
-  if (!gl_load())
-    printf("Failed to load OpenGL functions.\n");
+  if (gl_load(log_print_) != QW_OK) {
+    SDL_DestroyRenderer(renderer);
+    return NULL;
+  }
 
   return renderer;
 }
 
-render_buffer_t update_size(SDL_Renderer   *renderer,
-                            render_buffer_t buffer) {
+void update_size(SDL_Renderer *renderer) {
   if (renderer == NULL)
-    return buffer;
+    return;
 
   SDL_Rect rect;
   SDL_RenderGetViewport(renderer, &rect);
 
-  if (buffer.texture != NULL && buffer.width == rect.w &&
-      buffer.height == rect.h)
-    return buffer;
-
-  if (buffer.texture != NULL)
-    SDL_DestroyTexture(buffer.texture);
-
-  buffer.width  = rect.w;
-  buffer.height = rect.h;
-
-  buffer.texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
-                                     SDL_TEXTUREACCESS_STREAMING,
-                                     buffer.width, buffer.height);
-
-  if (buffer.texture == NULL)
-    printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
-
-  return buffer;
+  glViewport(0, 0, rect.w, rect.h);
 }
 
-void frame(SDL_Renderer *renderer, render_buffer_t buffer,
-           int64_t time_elapsed) {
-  static int64_t t = 0;
-
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-  SDL_RenderClear(renderer);
-
-  if (buffer.texture != NULL) {
-    pixel_t *pixels = NULL;
-    int      pitch  = 0;
-
-    if (SDL_LockTexture(buffer.texture, NULL, (void **) &pixels,
-                        &pitch) < 0)
-      printf("SDL_LockTexture failed: %s\n", SDL_GetError());
-    else {
-      pitch /= sizeof(pixel_t);
-
-      t += time_elapsed;
-      int64_t k = t / 10;
-
-      for (int j = 0; j < buffer.height; j++)
-        for (int i = 0, n = j * buffer.width; i < buffer.width;
-             i++, n++) {
-          pixels[n].r = k + i;
-          pixels[n].g = k + j;
-          pixels[n].b = k + i + j;
-        }
-
-      SDL_UnlockTexture(buffer.texture);
-    }
-
-    SDL_RenderCopy(renderer, buffer.texture, NULL, NULL);
-  }
+void frame(SDL_Renderer *renderer, int64_t time_elapsed) {
+  glClearColor(.4f, .5f, .6f, 1.f);
+  glClearDepth(1.0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   SDL_RenderPresent(renderer);
 }
@@ -139,10 +83,7 @@ void event_loop(SDL_Renderer *renderer) {
   if (renderer == NULL)
     return;
 
-  render_buffer_t buffer;
-  memset(&buffer, 0, sizeof buffer);
-
-  buffer = update_size(renderer, buffer);
+  update_size(renderer);
 
   struct timespec time_0;
   timespec_get(&time_0, TIME_UTC);
@@ -155,7 +96,7 @@ void event_loop(SDL_Renderer *renderer) {
       if (event.type == SDL_QUIT)
         done = 1;
 
-    buffer = update_size(renderer, buffer);
+    update_size(renderer);
 
     struct timespec time_1;
     timespec_get(&time_1, TIME_UTC);
@@ -167,14 +108,14 @@ void event_loop(SDL_Renderer *renderer) {
     int64_t time_elapsed_ms = (time_elapsed + time_extra) / 1000000;
     time_extra              = (time_elapsed + time_extra) % 1000000;
 
-    frame(renderer, buffer, time_elapsed_ms);
+    frame(renderer, time_elapsed_ms);
 
     time_0 = time_1;
   }
 }
 
 void run(void) {
-  if (init() != 0)
+  if (init() != QW_OK)
     return;
 
   SDL_Window   *window   = create_window();

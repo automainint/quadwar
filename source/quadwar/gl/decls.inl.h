@@ -1,3 +1,6 @@
+#ifndef QUADWAR_GL_DECLS_INL_H
+#define QUADWAR_GL_DECLS_INL_H
+
 #include "types.inl.h"
 
 typedef void (GL_API *pfn_glAccum)(GLenum op, GLfloat value);
@@ -6583,3 +6586,5 @@ extern pfn_glSignalVkSemaphoreNV glSignalVkSemaphoreNV;
 extern pfn_glSignalVkFenceNV glSignalVkFenceNV;
 extern pfn_glFramebufferParameteriMESA glFramebufferParameteriMESA;
 extern pfn_glGetFramebufferParameterivMESA glGetFramebufferParameterivMESA;
+
+#endif
