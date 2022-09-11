@@ -13,9 +13,13 @@ struct _cl_event;
 #include "decls.inl.h"
 #include "enums.inl.h"
 
-typedef void (*gl_log_callback)(char const *);
+#include <kit/string_ref.h>
 
-int gl_load(gl_log_callback log);
+typedef void *(*gl_get_proc_address_callback)(char const *name);
+typedef void (*gl_log_callback)(kit_str_t message);
+
+int qw_gl_load(gl_get_proc_address_callback get_proc_address,
+            gl_log_callback              log);
 
 #ifdef __cplusplus
 }
