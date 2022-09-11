@@ -33,6 +33,7 @@ if(NOT SDL2_FOUND)
     SDL2
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG main)
+  set(SDL_TEST OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(SDL2)
   add_library(SDL2::SDL2 ALIAS SDL2)
   add_library(SDL2::SDL2main ALIAS SDL2main)
