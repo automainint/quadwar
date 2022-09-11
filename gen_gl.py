@@ -189,8 +189,8 @@ def main():
 
   out = open(os.path.join(folder, 'types.inl.h'), 'w')
 
-  out.write('#include <cstddef>\n')
-  out.write('#include <cstdint>\n\n')
+  out.write('#include <stddef.h>\n')
+  out.write('#include <stdint.h>\n\n')
   out.write('#if (_MSC_VER >= 800) || defined(_STDCALL_SUPPORTED)\n')
   out.write('#  define GL_API __stdcall\n')
   out.write('#else\n')

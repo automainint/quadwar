@@ -1,5 +1,5 @@
-#include <cstddef>
-#include <cstdint>
+#include <stddef.h>
+#include <stdint.h>
 
 #if (_MSC_VER >= 800) || defined(_STDCALL_SUPPORTED)
 #  define GL_API __stdcall

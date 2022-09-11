@@ -8,7 +8,7 @@ if(NOT DEFINED CMAKE_BUILD_PARALLEL_LEVEL)
 endif()
 
 project(
-  QUADWAR_PROJECT
+  ${QUADWAR_PROJECT}
   VERSION 0.1.1
   DESCRIPTION "Quadwar"
   LANGUAGES C)
@@ -38,7 +38,6 @@ if(NOT SDL2_FOUND)
   add_library(SDL2::SDL2 ALIAS SDL2)
   add_library(SDL2::SDL2main ALIAS SDL2main)
 endif()
-
 
 add_executable(${QUADWAR})
 target_link_libraries(

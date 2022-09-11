@@ -7,6 +7,8 @@
 #include <SDL.h>
 #include <SDL_video.h>
 
+#include "gl/gl.h"
+
 enum { DEFAULT_WINDOW_WIDTH = 1024, DEFAULT_WINDOW_HEIGHT = 768 };
 
 typedef struct {
@@ -37,7 +39,7 @@ SDL_Window *create_window(void) {
   SDL_Window *window = SDL_CreateWindow(
       "Quadwar", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
       DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
-      SDL_WINDOW_RESIZABLE);
+      SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
   if (window == NULL)
     printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
@@ -54,13 +56,16 @@ SDL_Renderer *create_renderer(SDL_Window *window) {
       SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
   if (renderer == NULL)
-    printf("SDL_CreateSoftwareRenderer failed: %s\n", SDL_GetError());
+    printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
 
   SDL_RendererInfo info;
   if (SDL_GetRendererInfo(renderer, &info) < 0)
     printf("SDL_GetRendererInfo failed: %s\n", SDL_GetError());
   else
     printf("SDL renderer: %s\n", info.name);
+
+  if (!gl_load())
+    printf("Failed to load OpenGL functions.\n");
 
   return renderer;
 }
