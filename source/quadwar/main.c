@@ -8,7 +8,12 @@
 #include "gl/gl.h"
 #include "stem.h"
 
-enum { DEFAULT_WINDOW_WIDTH = 1024, DEFAULT_WINDOW_HEIGHT = 768 };
+enum {
+  DEFAULT_WINDOW_WIDTH  = 1024,
+  DEFAULT_WINDOW_HEIGHT = 768,
+  FULLSCREEN_WIDTH      = 1280,
+  FULLSCREEN_HEIGHT     = 720
+};
 
 static void log_print_(str_t const message) {
   printf("%*s", (int) message.size, message.values);
@@ -64,11 +69,14 @@ int main(int argc, char **argv) {
 
   int64_t time_extra = 0;
 
-  int buttons[] = { [SDL_BUTTON_LEFT]   = QW_KEY_BUTTON_LEFT,
-                    [SDL_BUTTON_MIDDLE] = QW_KEY_BUTTON_MIDDLE,
-                    [SDL_BUTTON_RIGHT]  = QW_KEY_BUTTON_RIGHT,
-                    [SDL_BUTTON_X1]     = QW_KEY_BUTTON_X1,
-                    [SDL_BUTTON_X2]     = QW_KEY_BUTTON_X2 };
+  int const buttons[] = { [SDL_BUTTON_LEFT]   = QW_KEY_BUTTON_LEFT,
+                          [SDL_BUTTON_MIDDLE] = QW_KEY_BUTTON_MIDDLE,
+                          [SDL_BUTTON_RIGHT]  = QW_KEY_BUTTON_RIGHT,
+                          [SDL_BUTTON_X1]     = QW_KEY_BUTTON_X1,
+                          [SDL_BUTTON_X2]     = QW_KEY_BUTTON_X2 };
+
+  int is_alt        = 0;
+  int is_fullscreen = 0;
 
   for (int done = 0; !done;) {
     SDL_Event event;
@@ -82,12 +90,32 @@ int main(int argc, char **argv) {
           qw_wheel(event.wheel.preciseX, event.wheel.preciseY);
           break;
         case SDL_KEYDOWN:
-          if (event.key.repeat == 0 &&
-              event.key.keysym.scancode >= 0 &&
-              event.key.keysym.scancode < (int) QW_KEY_MAP_SIZE)
-            qw_down(qw_key_map[event.key.keysym.scancode]);
+          if (event.key.repeat == 0) {
+            if (event.key.keysym.sym == SDLK_LALT ||
+                event.key.keysym.sym == SDLK_RALT)
+              is_alt++;
+            if (is_alt > 0 && event.key.keysym.sym == SDLK_RETURN) {
+              if (!is_fullscreen) {
+                SDL_SetWindowFullscreen(window,
+                                        SDL_WINDOW_FULLSCREEN);
+                SDL_SetWindowSize(window, FULLSCREEN_WIDTH,
+                                  FULLSCREEN_HEIGHT);
+                is_fullscreen = 1;
+              } else {
+                SDL_SetWindowFullscreen(window, 0);
+                is_fullscreen = 0;
+              }
+            } else if (event.key.keysym.scancode >= 0 &&
+                       event.key.keysym.scancode <
+                           (int) QW_KEY_MAP_SIZE)
+              qw_down(qw_key_map[event.key.keysym.scancode]);
+          }
           break;
         case SDL_KEYUP:
+          if ((event.key.keysym.sym == SDLK_LALT ||
+               event.key.keysym.sym == SDLK_RALT) &&
+              is_alt > 0)
+            is_alt--;
           if (event.key.keysym.scancode >= 0 &&
               event.key.keysym.scancode < (int) QW_KEY_MAP_SIZE)
             qw_up(qw_key_map[event.key.keysym.scancode]);
