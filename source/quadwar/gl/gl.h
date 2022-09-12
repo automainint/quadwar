@@ -19,7 +19,7 @@ typedef void *(*gl_get_proc_address_callback)(char const *name);
 typedef void (*gl_log_callback)(kit_str_t message);
 
 int qw_gl_load(gl_get_proc_address_callback get_proc_address,
-            gl_log_callback              log);
+               gl_log_callback              log);
 
 #ifdef __cplusplus
 }

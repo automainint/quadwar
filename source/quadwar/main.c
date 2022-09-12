@@ -64,11 +64,43 @@ int main(int argc, char **argv) {
 
   int64_t time_extra = 0;
 
+  int buttons[] = { [SDL_BUTTON_LEFT]   = QW_KEY_BUTTON_LEFT,
+                    [SDL_BUTTON_MIDDLE] = QW_KEY_BUTTON_MIDDLE,
+                    [SDL_BUTTON_RIGHT]  = QW_KEY_BUTTON_RIGHT,
+                    [SDL_BUTTON_X1]     = QW_KEY_BUTTON_X1,
+                    [SDL_BUTTON_X2]     = QW_KEY_BUTTON_X2 };
+
   for (int done = 0; !done;) {
     SDL_Event event;
-    while (SDL_PollEvent(&event) == 1)
-      if (event.type == SDL_QUIT)
-        done = 1;
+    while (SDL_PollEvent(&event) == 1) {
+      switch (event.type) {
+        case SDL_MOUSEMOTION:
+          qw_motion(event.motion.x, event.motion.y, event.motion.xrel,
+                    event.motion.yrel);
+          break;
+        case SDL_MOUSEWHEEL:
+          qw_wheel(event.wheel.preciseX, event.wheel.preciseY);
+          break;
+        case SDL_KEYDOWN:
+          if (event.key.repeat == 0 &&
+              event.key.keysym.scancode >= 0 &&
+              event.key.keysym.scancode < (int) QW_KEY_MAP_SIZE)
+            qw_down(qw_key_map[event.key.keysym.scancode]);
+          break;
+        case SDL_KEYUP:
+          if (event.key.keysym.scancode >= 0 &&
+              event.key.keysym.scancode < (int) QW_KEY_MAP_SIZE)
+            qw_up(qw_key_map[event.key.keysym.scancode]);
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          qw_down(qw_key_map[buttons[event.button.button]]);
+          break;
+        case SDL_MOUSEBUTTONUP:
+          qw_up(qw_key_map[buttons[event.button.button]]);
+          break;
+        case SDL_QUIT: done = 1; break;
+      }
+    }
 
     SDL_RenderGetViewport(renderer, &rect);
 
