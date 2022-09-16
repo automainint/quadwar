@@ -1,8 +1,10 @@
 #ifndef QUADWAR_MATH_H
 #define QUADWAR_MATH_H
 
-#include <assert.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
+
+#include <assert.h>
 #include <string.h>
 
 #ifdef __cplusplus
