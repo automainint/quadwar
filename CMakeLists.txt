@@ -43,7 +43,10 @@ add_executable(${QUADWAR})
 target_link_libraries(
   ${QUADWAR}
   PRIVATE
-  Threads::Threads kit::kit SDL2::SDL2 SDL2::SDL2main m)
+  Threads::Threads kit::kit SDL2::SDL2 SDL2::SDL2main)
+if(NOT WIN32)
+  target_link_libraries(${QUADWAR} PRIVATE m)
+endif()
 target_compile_features(${QUADWAR} PUBLIC c_std_11)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(${QUADWAR} PUBLIC -pedantic -Wall -Werror)
