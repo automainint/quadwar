@@ -97,7 +97,7 @@ static mat4_t mat4_mul(mat4_t const left, mat4_t const right) {
   for (int j = 0; j < 4; j++)
     for (int i = 0; i < 4; i++)
       for (int k = 0; k < 4; k++)
-        m.v[j * 4 + i] += left.v[j * 4 + k] * right.v[k * 4 + i];
+        m.v[j * 4 + i] += left.v[k * 4 + i] * right.v[j * 4 + k];
 
   return m;
 }
