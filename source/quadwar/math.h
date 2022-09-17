@@ -30,6 +30,7 @@ typedef struct {
 #ifdef __GNUC__
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-function"
+#  pragma GCC diagnostic ignored "-Wunknown-pragmas"
 
 #  pragma GCC push_options
 #  pragma GCC optimize("O3")
