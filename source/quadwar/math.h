@@ -30,6 +30,9 @@ typedef struct {
 #ifdef __GNUC__
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-function"
+
+#  pragma GCC push_options
+#  pragma GCC optimize("O3")
 #endif
 
 static vec3_t vec3(vec_t const x, vec_t const y, vec_t const z) {
@@ -213,6 +216,8 @@ static mat4_t mat4_perspective(vec_t const fovy,
 }
 
 #ifdef __GNUC__
+#  pragma GCC pop_options
+
 #  pragma GCC diagnostic pop
 #endif
 

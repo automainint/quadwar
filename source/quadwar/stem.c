@@ -216,12 +216,12 @@ void qw_init(void) {
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
 
-  vec_t data[] = { -.5f, -.5f, 0.f, //
-                   -.5f, .5f,  0.f, //
-                   .5f,  .5f,  0.f, //
-                   -.5f, -.5f, 0.f, //
-                   .5f,  .5f,  0.f, //
-                   .5f,  -.5f, 0.f };
+  vec_t const data[] = { -.5f, -.5f, 0.f, //
+                         -.5f, .5f,  0.f, //
+                         .5f,  .5f,  0.f, //
+                         -.5f, -.5f, 0.f, //
+                         .5f,  .5f,  0.f, //
+                         .5f,  -.5f, 0.f };
 
   glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STATIC_DRAW);
 
@@ -247,7 +247,6 @@ void qw_cleanup(void) {
 
 void qw_size(int const x, int const y, int const width,
              int const height) {
-  // printf("^ size %3d %3d %3d %3d\n", x, y, width, height);
   glViewport(x, y, width, height);
   aspect_ratio = ((vec_t) width) / (vec_t) height;
 }
