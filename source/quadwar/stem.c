@@ -44,33 +44,31 @@ static GLuint shader_program;
 static GLint u_view;
 static GLint u_object;
 
-float aspect_ratio = 1.f;
+vec_t aspect_ratio = 1.f;
 
-void qw_down(int const key) {
-  // printf("^ key down %d\n", key);
-}
+vec_t const sense_motion = .004f;
+vec_t const sense_wheel  = .07f;
 
-void qw_up(int const key) {
-  // printf("^ key up %d\n", key);
-}
+vec_t time = 0.f;
 
-void qw_motion(int const x, int const y, int const delta_x,
-               int const delta_y) {
-  // printf("^ motion %3d %3d\n", x, y);
-}
+quat_t rotation = { { 0.f, 0.f, 0.f, 1.f } };
+vec_t  rotate_x = 0.f;
+vec_t  rotate_y = 0.f;
+vec_t  rotate_z = 0.f;
 
-void qw_wheel(float const delta_x, float const delta_y) {
-  // printf("^ wheel %3g %3g\n", delta_x, delta_y);
-}
+int is_left_button = 0;
 
-static void build_shaders(void) {
+static void shaders_build(int rebuild) {
   static char const cache_file[] = ".cache_shader.bin";
 
-  FILE *in = fopen(cache_file, "rb");
+  FILE *in = NULL;
+
+  if (!rebuild)
+    in = fopen(cache_file, "rb");
 
   int32_t  binary_size;
   int32_t  binary_format;
-  uint8_t *binary_data = NULL;
+  uint8_t *binary_data;
 
   if (in != NULL) {
     fread(&binary_size, 4, 1, in);
@@ -87,6 +85,8 @@ static void build_shaders(void) {
 
       glProgramBinary(shader_program, (GLenum) binary_format,
                       binary_data, binary_size);
+
+      free(binary_data);
     }
 
     fclose(in);
@@ -158,17 +158,53 @@ static void build_shaders(void) {
 
         FILE *out = fopen(cache_file, "wb");
 
-        fwrite(&written, 4, 1, out);
-        fwrite(&binary_format, 4, 1, out);
-        fwrite(binary_data, 1, written, out);
+        if (out != NULL) {
+          fwrite(&written, 4, 1, out);
+          fwrite(&binary_format, 4, 1, out);
+          fwrite(binary_data, 1, written, out);
 
-        fclose(out);
+          fclose(out);
+        }
+
+        free(binary_data);
       }
     }
   }
+}
 
-  if (binary_data != NULL)
-    free(binary_data);
+static void shaders_cleanup(void) {
+  glDeleteProgram(shader_program);
+  glDeleteShader(vertex_shader);
+  glDeleteShader(fragment_shader);
+}
+
+void qw_down(int const key) {
+  switch (key) {
+    case QW_KEY_BUTTON_LEFT: is_left_button = 1; break;
+    case QW_KEY_RETURN:
+      printf("Rebuild shaders\n");
+      shaders_cleanup();
+      shaders_build(1);
+      break;
+    default:;
+  }
+}
+
+void qw_up(int const key) {
+  if (key == QW_KEY_BUTTON_LEFT)
+    is_left_button = 0;
+}
+
+void qw_motion(int const x, int const y, int const delta_x,
+               int const delta_y) {
+  if (is_left_button) {
+    rotate_x -= (vec_t) M_PI * sense_motion * (vec_t) delta_y;
+    rotate_y -= (vec_t) M_PI * sense_motion * (vec_t) delta_x;
+  }
+}
+
+void qw_wheel(float const delta_x, float const delta_y) {
+  rotate_z += (vec_t) M_PI * sense_wheel * (vec_t) delta_y;
 }
 
 void qw_init(void) {
@@ -180,7 +216,7 @@ void qw_init(void) {
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
 
-  float data[] = { -.5f, -.5f, 0.f, //
+  vec_t data[] = { -.5f, -.5f, 0.f, //
                    -.5f, .5f,  0.f, //
                    .5f,  .5f,  0.f, //
                    -.5f, -.5f, 0.f, //
@@ -194,7 +230,7 @@ void qw_init(void) {
 
   glBindVertexArray(0);
 
-  build_shaders();
+  shaders_build(0);
 
   glBindAttribLocation(shader_program, 0, "in_position");
 
@@ -203,9 +239,8 @@ void qw_init(void) {
 }
 
 void qw_cleanup(void) {
-  glDeleteProgram(shader_program);
-  glDeleteShader(vertex_shader);
-  glDeleteShader(fragment_shader);
+  shaders_cleanup();
+
   glDeleteBuffers(1, &vertex_buffer);
   glDeleteVertexArrays(1, &vertex_array);
 }
@@ -214,26 +249,42 @@ void qw_size(int const x, int const y, int const width,
              int const height) {
   // printf("^ size %3d %3d %3d %3d\n", x, y, width, height);
   glViewport(x, y, width, height);
-  aspect_ratio = ((float) width) / (float) height;
+  aspect_ratio = ((vec_t) width) / (vec_t) height;
 }
 
 int qw_frame(int64_t const time_elapsed) {
-  static vec_t t = 0.f;
+  static vec3_t const axis_x = { { 1.f, 0.f, 0.f } };
+  static vec3_t const axis_y = { { 0.f, 1.f, 0.f } };
+  static vec3_t const axis_z = { { 0.f, 0.f, 1.f } };
 
-  vec3_t const axis = vec3_normal(vec3(1.f, 0.f, 0.f));
+  if (rotate_x != 0.f) {
+    rotation = quat_normal(
+        quat_mul(rotation, quat_rotation(rotate_x, axis_x)));
+    rotate_x = 0;
+  }
 
-  quat_t const q = quat_rotation(M_PI * .6f * t, axis);
+  if (rotate_y != 0.f) {
+    rotation = quat_normal(
+        quat_mul(rotation, quat_rotation(rotate_y, axis_y)));
+    rotate_y = 0;
+  }
 
-  mat4_t const position = mat4_move(vec3(0.f, 0.f, -1.f));
+  if (rotate_z != 0.f) {
+    rotation = quat_normal(
+        quat_mul(rotation, quat_rotation(rotate_z, axis_z)));
+    rotate_z = 0;
+  }
 
-  mat4_t const rotation = quat_to_mat4(q);
+  mat4_t const position = mat4_move(vec3(0.f, 0.f, -4.f));
 
-  mat4_t const view = mat4_perspective(M_PI * .3f, aspect_ratio, .1f,
+  mat4_t const rotation_matrix = quat_to_mat4(rotation);
+
+  mat4_t const view = mat4_perspective(M_PI * .1f, aspect_ratio, .1f,
                                        400.f);
 
-  mat4_t const object = mat4_mul(position, rotation);
+  mat4_t const object = mat4_mul(position, rotation_matrix);
 
-  t += .001f * (vec_t) time_elapsed;
+  time += ((vec_t) time_elapsed) / 1000.f;
 
   glClearColor(.45f, .42f, .48f, 1.f);
   glClearDepth(1.0);

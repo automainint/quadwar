@@ -27,9 +27,25 @@ typedef struct {
   vec_t v[16];
 } mat4_t;
 
+#ifdef __GNUC__
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 static vec3_t vec3(vec_t const x, vec_t const y, vec_t const z) {
   vec3_t const v = { { x, y, z } };
   return v;
+}
+
+static vec4_t vec4(vec_t const x, vec_t const y, vec_t const z,
+                   vec_t const w) {
+  vec4_t const v = { { x, y, z, w } };
+  return v;
+}
+
+static quat_t quat(vec_t const x, vec_t const y, vec_t const z,
+                   vec_t const w) {
+  return vec4(x, y, z, w);
 }
 
 static vec3_t vec3_normal(vec3_t const v) {
@@ -49,6 +65,50 @@ static vec3_t vec3_normal(vec3_t const v) {
   vec3_t const n      = { { x / length, y / length, z / length } };
 
   return n;
+}
+
+static vec4_t vec4_normal(vec4_t const v) {
+  vec_t const x = v.v[0];
+  vec_t const y = v.v[1];
+  vec_t const z = v.v[2];
+  vec_t const w = v.v[3];
+
+  vec_t const length_squared = x * x + y * y + z * z + w * w;
+  assert(length_squared >= EPSILON);
+
+  if (length_squared < EPSILON) {
+    vec4_t const n = { { 0.f, 0.f, 0.f, 1.f } };
+    return n;
+  }
+
+  vec_t const  length = sqrtf(length_squared);
+  vec4_t const n      = { { x / length, y / length, z / length,
+                            w / length } };
+
+  return n;
+}
+
+static quat_t quat_normal(quat_t const q) {
+  return vec4_normal(q);
+}
+
+static quat_t quat_mul(quat_t const left, quat_t const right) {
+  vec_t const i0 = left.v[0];
+  vec_t const j0 = left.v[1];
+  vec_t const k0 = left.v[2];
+  vec_t const r0 = left.v[3];
+
+  vec_t const i1 = right.v[0];
+  vec_t const j1 = right.v[1];
+  vec_t const k1 = right.v[2];
+  vec_t const r1 = right.v[3];
+
+  quat_t const q = { { r0 * i1 + i0 * r1 + j0 * k1 - k0 * j1, //
+                       r0 * j1 - i0 * k1 + j0 * r1 + k0 * i1, //
+                       r0 * k1 + i0 * j1 - j0 * i1 + k0 * r1, //
+                       r0 * r1 - i0 * i1 - j0 * j1 - k0 * k1 } };
+
+  return q;
 }
 
 static quat_t quat_rotation(vec_t const angle, vec3_t const axis) {
@@ -151,6 +211,10 @@ static mat4_t mat4_perspective(vec_t const fovy,
 
   return mat4_frustum(-xmax, xmax, -ymax, ymax, znear, zfar);
 }
+
+#ifdef __GNUC__
+#  pragma GCC diagnostic pop
+#endif
 
 #ifdef __cplusplus
 }
