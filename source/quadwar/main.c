@@ -9,10 +9,11 @@
 #include "stem.h"
 
 enum {
+  DEFAULT_VSYNC         = 0,
   DEFAULT_WINDOW_WIDTH  = 1024,
   DEFAULT_WINDOW_HEIGHT = 768,
   FULLSCREEN_WIDTH      = 1280,
-  FULLSCREEN_HEIGHT     = 720
+  FULLSCREEN_HEIGHT     = 720,
 };
 
 static void log_print_(str_t const message) {
@@ -79,6 +80,8 @@ int main(int argc, char **argv) {
     printf("Audio:    %s\n", audio);
   printf("\n");
 
+  SDL_GL_SetSwapInterval(DEFAULT_VSYNC ? 1 : 0);
+
   qw_init();
 
   int width  = 0;
@@ -97,6 +100,9 @@ int main(int argc, char **argv) {
 
   int is_alt        = 0;
   int is_fullscreen = 0;
+
+  int     frames     = 0;
+  int64_t time_frame = 0;
 
   for (int done = 0; !done;) {
     SDL_Event event;
@@ -173,6 +179,15 @@ int main(int argc, char **argv) {
       done = 1;
 
     SDL_GL_SwapWindow(window);
+
+    frames++;
+    time_frame += time_elapsed_ms;
+
+    if (time_frame >= 5000) {
+      printf("FPS: %.1f\n", ((float) frames) / 5);
+      frames = 0;
+      time_frame -= 5000;
+    }
   }
 
   qw_cleanup();
