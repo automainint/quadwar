@@ -179,6 +179,19 @@ static mat4_t mat4_move(vec3_t const offset) {
   return m;
 }
 
+static mat4_t mat4_scale(vec3_t const scale) {
+  vec_t const x = scale.v[0];
+  vec_t const y = scale.v[1];
+  vec_t const z = scale.v[2];
+
+  mat4_t const m = { { x, 0.f, 0.f, 0.f, //
+                       0.f, y, 0.f, 0.f, //
+                       0.f, 0.f, z, 0.f, //
+                       0.f, 0.f, 0.f, 1.f } };
+
+  return m;
+}
+
 static mat4_t mat4_frustum(vec_t const left, vec_t const right,
                            vec_t const bottom, vec_t const top,
                            vec_t const znear, vec_t const zfar) {
@@ -238,7 +251,7 @@ static vec3_t rgb_to_hsl(vec3_t const rgb) {
 
   if (lightness > EPSILON && l_opposite > EPSILON)
     saturation = (x_max - lightness) / fminf(lightness, l_opposite);
-  
+
   vec3_t const hsl = { { hue, saturation, lightness } };
 
   return hsl;

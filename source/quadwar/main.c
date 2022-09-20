@@ -183,10 +183,11 @@ int main(int argc, char **argv) {
     frames++;
     time_frame += time_elapsed_ms;
 
-    if (time_frame >= 5000) {
-      printf("FPS: %.1f\n", ((float) frames) / 5);
+    if (time_frame >= 1000) {
+      printf("FPS: %d\r", frames);
+      fflush(stdout);
       frames = 0;
-      time_frame -= 5000;
+      time_frame -= 1000;
     }
   }
 
