@@ -216,6 +216,56 @@ static mat4_t mat4_perspective(vec_t const fovy,
   return mat4_frustum(-xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
+static vec3_t rgb_to_hsl(vec3_t const rgb) {
+  vec_t const x_max     = fmaxf(fmaxf(rgb.v[0], rgb.v[1]), rgb.v[2]);
+  vec_t const x_min     = fminf(fminf(rgb.v[0], rgb.v[1]), rgb.v[2]);
+  const vec_t chroma    = x_max - x_min;
+  vec_t const lightness = (x_max + x_min) / 2.f;
+
+  vec_t hue        = 0.f;
+  vec_t saturation = 0.f;
+
+  if (chroma > EPSILON) {
+    if (rgb.v[0] >= rgb.v[1] && rgb.v[0] >= rgb.v[2])
+      hue = ((rgb.v[1] - rgb.v[2]) / chroma) / 6.f;
+    else if (rgb.v[1] >= rgb.v[2])
+      hue = (2.f + (rgb.v[2] - rgb.v[0]) / chroma) / 6.f;
+    else
+      hue = (4.f + (rgb.v[0] - rgb.v[1]) / chroma) / 6.f;
+  }
+
+  vec_t const l_opposite = 1.f - lightness;
+
+  if (lightness > EPSILON && l_opposite > EPSILON)
+    saturation = (x_max - lightness) / fminf(lightness, l_opposite);
+  
+  vec3_t const hsl = { { hue, saturation, lightness } };
+
+  return hsl;
+}
+
+static vec_t hsl_to_rgb_helper_(vec_t const hue12,
+                                vec_t const lightness,
+                                vec_t const alpha, vec_t const n) {
+  vec_t const k = fmodf(n + hue12, 12.f);
+  return lightness -
+         alpha * fmaxf(-1.f, fminf(fminf(k - 3.f, 9.f - k), 1.f));
+}
+
+static vec3_t hsl_to_rgb(vec3_t const hsl) {
+  vec_t hue12     = hsl.v[0] * 12.f;
+  vec_t lightness = hsl.v[2];
+  vec_t alpha     = hsl.v[1] * fminf(hsl.v[2], 1.f - hsl.v[2]);
+
+  vec3_t const rgb = {
+    { hsl_to_rgb_helper_(hue12, lightness, alpha, 0),
+      hsl_to_rgb_helper_(hue12, lightness, alpha, 8),
+      hsl_to_rgb_helper_(hue12, lightness, alpha, 4) }
+  };
+
+  return rgb;
+}
+
 #ifdef __GNUC__
 #  pragma GCC pop_options
 

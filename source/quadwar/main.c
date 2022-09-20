@@ -24,10 +24,19 @@ static void *qw_gl_get_proc_address(char const *const name) {
 }
 
 int main(int argc, char **argv) {
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+  printf("Quadwar, development version\n\n");
+
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
     printf("SDL_Init failed: %s\n", SDL_GetError());
     return QW_ERROR;
   }
+
+  int gl_major = 2;
+  int gl_minor = 1;
+
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);
 
   SDL_Window *const window = SDL_CreateWindow(
       "Quadwar", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -39,28 +48,39 @@ int main(int argc, char **argv) {
     return QW_ERROR;
   }
 
-  SDL_Renderer *const renderer = SDL_CreateRenderer(
-      window, -1,
-      SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-  if (renderer == NULL) {
-    printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
-    SDL_DestroyWindow(window);
-    return QW_ERROR;
-  }
+  SDL_GLContext const glcontext = SDL_GL_CreateContext(window);
 
   if (qw_gl_load(qw_gl_get_proc_address, log_print_) != QW_OK) {
-    SDL_DestroyRenderer(renderer);
+    SDL_GL_DeleteContext(glcontext);
     SDL_DestroyWindow(window);
     return QW_ERROR;
   }
+
+  char const *platform = SDL_GetPlatform();
+  char const *video    = SDL_GetCurrentVideoDriver();
+  char const *audio    = SDL_GetCurrentAudioDriver();
+
+  printf("CPU:      %d cores, %d bytes L1 cache\n", SDL_GetCPUCount(),
+         SDL_GetCPUCacheLineSize());
+  if (platform != NULL)
+    printf("Platform: %s\n", platform);
+  if (video != NULL)
+    printf("Video:    %s", video);
+  if (SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &gl_major) ==
+          0 &&
+      SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &gl_minor) ==
+          0) {
+    if (video != NULL)
+      printf(", ");
+    printf("OpenGL %d.%d\n", gl_major, gl_minor);
+  } else
+    printf("\n");
+  if (audio != NULL)
+    printf("Audio:    %s\n", audio);
+  printf("\n");
 
   qw_init();
 
-  SDL_Rect rect;
-
-  int x      = 0;
-  int y      = 0;
   int width  = 0;
   int height = 0;
 
@@ -130,16 +150,14 @@ int main(int argc, char **argv) {
       }
     }
 
-    SDL_RenderGetViewport(renderer, &rect);
+    int w, h;
+    SDL_GL_GetDrawableSize(window, &w, &h);
 
-    if (x != rect.x || y != rect.y || width != rect.w ||
-        height != rect.h) {
-      x      = rect.x;
-      y      = rect.y;
-      width  = rect.w;
-      height = rect.h;
+    if (width != w || height != h) {
+      width  = w;
+      height = h;
 
-      qw_size(x, y, width, height);
+      qw_size(width, height);
     }
 
     timespec_get(&time_1, TIME_UTC);
@@ -154,15 +172,17 @@ int main(int argc, char **argv) {
     if (qw_frame(time_elapsed_ms) == QW_DONE)
       done = 1;
 
-    SDL_RenderPresent(renderer);
+    SDL_GL_SwapWindow(window);
   }
 
   qw_cleanup();
 
-  SDL_DestroyRenderer(renderer);
+  SDL_GL_DeleteContext(glcontext);
   SDL_DestroyWindow(window);
 
   SDL_Quit();
+
+  printf("\nBye\n");
 
   return QW_OK;
 }

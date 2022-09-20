@@ -12,27 +12,25 @@ static char const *const vertex_shader_source = //
     CODE_(uniform mat4 u_view;                  //
           uniform mat4 u_object;                //
 
-          in vec3  in_position; //
-          out vec4 ex_color;    //
+          in vec3 in_position; //
 
           void main(void) { //
             gl_Position = (u_view * u_object) * vec4(in_position.x,
                                                      in_position.y,
                                                      in_position.z,
                                                      1.0); //
-            ex_color    = vec4(0.7, 0.3, 0.25, 1.0);       //
           }                                                //
     );
 
 static char const *const fragment_shader_source = //
     "#version 130\n"                              //
     CODE_(                                        //
-        precision highp float;                    //
-        in vec4   ex_color;                       //
+        precision    highp float;                 //
+        uniform vec4 u_color;                     //
 
-        void main() {              //
-          gl_FragColor = ex_color; //
-        }                          //
+        void main() {             //
+          gl_FragColor = u_color; //
+        }                         //
     );
 
 static GLuint vertex_array;
@@ -43,6 +41,7 @@ static GLuint shader_program;
 
 static GLint u_view;
 static GLint u_object;
+static GLint u_color;
 
 vec_t aspect_ratio = 1.f;
 
@@ -50,6 +49,9 @@ vec_t const sense_motion = .004f;
 vec_t const sense_wheel  = .07f;
 
 vec_t time = 0.f;
+
+vec3_t back_color = { { 0.f, 0.f, 0.f } };
+vec3_t color      = { { 1.f, 1.f, 1.f } };
 
 quat_t rotation = { { 0.f, 0.f, 0.f, 1.f } };
 vec_t  rotate_x = 0.f;
@@ -185,6 +187,10 @@ void qw_down(int const key) {
       printf("Rebuild shaders\n");
       shaders_cleanup();
       shaders_build(1);
+      glBindAttribLocation(shader_program, 0, "in_position");
+      u_view   = glGetUniformLocation(shader_program, "u_view");
+      u_object = glGetUniformLocation(shader_program, "u_object");
+      u_color  = glGetUniformLocation(shader_program, "u_color");
       break;
     default:;
   }
@@ -209,6 +215,9 @@ void qw_wheel(float const delta_x, float const delta_y) {
 
 void qw_init(void) {
   for (int i = 0; i < QW_KEY_MAP_SIZE; i++) qw_key_map[i] = i;
+
+  back_color = hsl_to_rgb(vec3(.75f, .07f, .45f));
+  color      = hsl_to_rgb(vec3(.02f, .47f, .47f));
 
   glGenVertexArrays(1, &vertex_array);
   glBindVertexArray(vertex_array);
@@ -236,6 +245,7 @@ void qw_init(void) {
 
   u_view   = glGetUniformLocation(shader_program, "u_view");
   u_object = glGetUniformLocation(shader_program, "u_object");
+  u_color  = glGetUniformLocation(shader_program, "u_color");
 }
 
 void qw_cleanup(void) {
@@ -245,9 +255,8 @@ void qw_cleanup(void) {
   glDeleteVertexArrays(1, &vertex_array);
 }
 
-void qw_size(int const x, int const y, int const width,
-             int const height) {
-  glViewport(x, y, width, height);
+void qw_size(int const width, int const height) {
+  glViewport(0, 0, width, height);
   aspect_ratio = ((vec_t) width) / (vec_t) height;
 }
 
@@ -283,9 +292,14 @@ int qw_frame(int64_t const time_elapsed) {
 
   mat4_t const object = mat4_mul(position, rotation_matrix);
 
+  vec_t const hue = time / 100;
+
+  color = hsl_to_rgb(vec3(hue - floorf(hue), .47f, .47f));
+
   time += ((vec_t) time_elapsed) / 1000.f;
 
-  glClearColor(.45f, .42f, .48f, 1.f);
+  glClearColor(back_color.v[0], back_color.v[1], back_color.v[2],
+               1.f);
   glClearDepth(1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -294,6 +308,7 @@ int qw_frame(int64_t const time_elapsed) {
   glUseProgram(shader_program);
   glUniformMatrix4fv(u_view, 1, GL_FALSE, view.v);
   glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
+  glUniform4f(u_color, color.v[0], color.v[1], color.v[2], 1.f);
 
   glBindVertexArray(vertex_array);
   glDrawArrays(GL_TRIANGLES, 0, 6);
