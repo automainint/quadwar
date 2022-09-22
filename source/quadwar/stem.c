@@ -8,7 +8,7 @@
 #define CODE_(...) #__VA_ARGS__
 
 static char const *const vertex_shader_source = //
-    "#version 130\n"                            //
+    "#version 300 es\n"                         //
     CODE_(uniform mat4 u_view;                  //
           uniform mat4 u_object;                //
 
@@ -23,14 +23,16 @@ static char const *const vertex_shader_source = //
     );
 
 static char const *const fragment_shader_source = //
-    "#version 130\n"                              //
+    "#version 300 es\n"                           //
     CODE_(                                        //
         precision    highp float;                 //
         uniform vec4 u_color;                     //
 
-        void main() {             //
-          gl_FragColor = u_color; //
-        }                         //
+        out vec4 out_color; //
+
+        void main() {          //
+          out_color = u_color; //
+        }                      //
     );
 
 static GLuint vertex_array;

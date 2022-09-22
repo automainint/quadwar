@@ -32,9 +32,11 @@ int main(int argc, char **argv) {
     return QW_ERROR;
   }
 
-  int gl_major = 2;
-  int gl_minor = 1;
+  int gl_major = 3;
+  int gl_minor = 0;
 
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                      SDL_GL_CONTEXT_PROFILE_ES);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);

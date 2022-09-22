@@ -8,6 +8,11 @@
 #define FEATURE_GL_VERSION_1_3
 #define FEATURE_GL_VERSION_1_4
 #define FEATURE_GL_VERSION_1_5
+
+#define FEATURE_GL_ES_VERSION_2_0
+#define FEATURE_GL_ES_VERSION_3_0
+
+/*
 #define FEATURE_GL_VERSION_2_0
 #define FEATURE_GL_VERSION_2_1
 #define FEATURE_GL_VERSION_3_0
@@ -21,6 +26,10 @@
 #define FEATURE_GL_VERSION_4_4
 #define FEATURE_GL_VERSION_4_5
 #define FEATURE_GL_VERSION_4_6
+
+#define FEATURE_GL_ES_VERSION_3_1
+#define FEATURE_GL_ES_VERSION_3_2
+ */
 
 #define LOAD_(func, name)                            \
   load((void **) &func, name, get_proc_address, log, \
