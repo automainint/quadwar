@@ -49,18 +49,28 @@ if(NOT WIN32)
 endif()
 target_compile_features(${QUADWAR} PUBLIC c_std_11)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(${QUADWAR} PUBLIC -pedantic -Wall -Werror)
+  target_compile_options(${QUADWAR} PRIVATE -pedantic -Wall -Werror)
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES "debug|DEBUG|Debug")
   if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(
-      ${QUADWAR} PUBLIC
+      ${QUADWAR} PRIVATE
       -fsanitize=undefined,address -O0 -g)
     target_link_options(
-      ${QUADWAR} PUBLIC
+      ${QUADWAR} PRIVATE
       -fsanitize=undefined,address)
   endif()
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES "release|RELEASE|Release")
+  if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(${QUADWAR} PRIVATE -O3)
+  endif()
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+  target_link_options(${QUADWAR} PRIVATE -sFULL_ES3)
 endif()
 
 add_subdirectory(source)

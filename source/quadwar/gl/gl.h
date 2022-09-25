@@ -7,9 +7,6 @@
 extern "C" {
 #endif
 
-struct _cl_context;
-struct _cl_event;
-
 #include "decls.inl.h"
 #include "enums.inl.h"
 

@@ -45,22 +45,22 @@ static GLint u_view;
 static GLint u_object;
 static GLint u_color;
 
-vec_t aspect_ratio = 1.f;
+static vec_t aspect_ratio = 1.f;
 
-vec_t const sense_motion = .004f;
-vec_t const sense_wheel  = .07f;
+static vec_t const sense_motion = .004f;
+static vec_t const sense_wheel  = .07f;
 
-vec_t time = 0.f;
+static vec_t time = 0.f;
 
-vec3_t back_color = { { 0.f, 0.f, 0.f } };
-vec3_t color      = { { 1.f, 1.f, 1.f } };
+static vec3_t back_color = { { 0.f, 0.f, 0.f } };
+static vec3_t color      = { { 1.f, 1.f, 1.f } };
 
-quat_t rotation = { { 0.f, 0.f, 0.f, 1.f } };
-vec_t  rotate_x = 0.f;
-vec_t  rotate_y = 0.f;
-vec_t  rotate_z = 0.f;
+static quat_t rotation = { { 0.f, 0.f, 0.f, 1.f } };
+static vec_t  rotate_x = 0.f;
+static vec_t  rotate_y = 0.f;
+static vec_t  rotate_z = 0.f;
 
-int is_left_button = 0;
+static int is_left_button = 0;
 
 static void shaders_build(int rebuild) {
   static char const cache_file[] = ".cache_shader.bin";
@@ -85,10 +85,10 @@ static void shaders_build(int rebuild) {
 
       printf("Load cached shader program binary\n");
 
-      shader_program = glCreateProgram();
+      shader_program = qw_glCreateProgram();
 
-      glProgramBinary(shader_program, (GLenum) binary_format,
-                      binary_data, binary_size);
+      qw_glProgramBinary(shader_program, (GLenum) binary_format,
+                         binary_data, binary_size);
 
       free(binary_data);
     }
@@ -97,89 +97,93 @@ static void shaders_build(int rebuild) {
   } else {
     printf("Compile shader program\n");
 
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    vertex_shader = qw_glCreateShader(GL_VERTEX_SHADER);
 
-    glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
-    glCompileShader(vertex_shader);
+    qw_glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+    qw_glCompileShader(vertex_shader);
 
     GLint status;
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &status);
+    qw_glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  shader_log[1024];
       GLint shader_log_size = sizeof shader_log - 1;
-      glGetShaderInfoLog(vertex_shader, sizeof shader_log,
-                         &shader_log_size, shader_log);
+      qw_glGetShaderInfoLog(vertex_shader, sizeof shader_log,
+                            &shader_log_size, shader_log);
       printf("Vertex shader compilation failed.\n%*s\n",
              shader_log_size, shader_log);
     }
 
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    fragment_shader = qw_glCreateShader(GL_FRAGMENT_SHADER);
 
-    glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
-    glCompileShader(fragment_shader);
+    qw_glShaderSource(fragment_shader, 1, &fragment_shader_source,
+                      NULL);
+    qw_glCompileShader(fragment_shader);
 
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &status);
+    qw_glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  shader_log[1024];
       GLint shader_log_size = sizeof shader_log - 1;
-      glGetShaderInfoLog(fragment_shader, sizeof shader_log,
-                         &shader_log_size, shader_log);
+      qw_glGetShaderInfoLog(fragment_shader, sizeof shader_log,
+                            &shader_log_size, shader_log);
       printf("Fragment shader compilation failed.\n%*s\n",
              shader_log_size, shader_log);
     }
 
-    shader_program = glCreateProgram();
+    shader_program = qw_glCreateProgram();
 
-    glAttachShader(shader_program, vertex_shader);
-    glAttachShader(shader_program, fragment_shader);
+    qw_glAttachShader(shader_program, vertex_shader);
+    qw_glAttachShader(shader_program, fragment_shader);
 
-    glLinkProgram(shader_program);
+    qw_glLinkProgram(shader_program);
 
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &status);
+    qw_glGetProgramiv(shader_program, GL_LINK_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  program_log[1024];
       GLint program_log_size = sizeof program_log - 1;
-      glGetProgramInfoLog(shader_program, sizeof program_log,
-                          &program_log_size, program_log);
+      qw_glGetProgramInfoLog(shader_program, sizeof program_log,
+                             &program_log_size, program_log);
       printf("Shader program link failed.\n%*s\n", program_log_size,
              program_log);
     } else {
-      glGetProgramiv(shader_program, GL_PROGRAM_BINARY_LENGTH,
-                     &binary_size);
+#ifndef __EMSCRIPTEN__
+      FILE *out = fopen(cache_file, "wb");
 
-      binary_data = (uint8_t *) malloc(binary_size);
+      if (out != NULL) {
+        qw_glGetProgramiv(shader_program, GL_PROGRAM_BINARY_LENGTH,
+                          &binary_size);
 
-      if (binary_data != NULL) {
-        int written;
+        binary_data = (uint8_t *) malloc(binary_size);
 
-        glGetProgramBinary(shader_program, binary_size, &written,
-                           (GLenum *) &binary_format, binary_data);
+        if (binary_data != NULL) {
+          int written;
 
-        printf("Cache shader program binary\n");
+          qw_glGetProgramBinary(shader_program, binary_size, &written,
+                                (GLenum *) &binary_format,
+                                binary_data);
 
-        FILE *out = fopen(cache_file, "wb");
+          printf("Cache shader program binary\n");
 
-        if (out != NULL) {
           fwrite(&written, 4, 1, out);
           fwrite(&binary_format, 4, 1, out);
           fwrite(binary_data, 1, written, out);
 
-          fclose(out);
+          free(binary_data);
         }
 
-        free(binary_data);
+        fclose(out);
       }
+#endif
     }
   }
 }
 
 static void shaders_cleanup(void) {
-  glDeleteProgram(shader_program);
-  glDeleteShader(vertex_shader);
-  glDeleteShader(fragment_shader);
+  qw_glDeleteProgram(shader_program);
+  qw_glDeleteShader(vertex_shader);
+  qw_glDeleteShader(fragment_shader);
 }
 
 void qw_down(int const key) {
@@ -189,10 +193,10 @@ void qw_down(int const key) {
       printf("Rebuild shaders\n");
       shaders_cleanup();
       shaders_build(1);
-      glBindAttribLocation(shader_program, 0, "in_position");
-      u_view   = glGetUniformLocation(shader_program, "u_view");
-      u_object = glGetUniformLocation(shader_program, "u_object");
-      u_color  = glGetUniformLocation(shader_program, "u_color");
+      qw_glBindAttribLocation(shader_program, 0, "in_position");
+      u_view   = qw_glGetUniformLocation(shader_program, "u_view");
+      u_object = qw_glGetUniformLocation(shader_program, "u_object");
+      u_color  = qw_glGetUniformLocation(shader_program, "u_color");
       break;
     default:;
   }
@@ -221,11 +225,11 @@ void qw_init(void) {
   back_color = hsl_to_rgb(vec3(.75f, .07f, .45f));
   color      = hsl_to_rgb(vec3(.02f, .47f, .47f));
 
-  glGenVertexArrays(1, &vertex_array);
-  glBindVertexArray(vertex_array);
+  qw_glGenVertexArrays(1, &vertex_array);
+  qw_glBindVertexArray(vertex_array);
 
-  glGenBuffers(1, &vertex_buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+  qw_glGenBuffers(1, &vertex_buffer);
+  qw_glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
 
   vec_t const data[] = { -.5f, -.5f, 0.f, //
                          -.5f, .5f,  0.f, //
@@ -234,31 +238,31 @@ void qw_init(void) {
                          .5f,  .5f,  0.f, //
                          .5f,  -.5f, 0.f };
 
-  glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STATIC_DRAW);
+  qw_glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-  glEnableVertexAttribArray(0);
+  qw_glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+  qw_glEnableVertexAttribArray(0);
 
-  glBindVertexArray(0);
+  qw_glBindVertexArray(0);
 
   shaders_build(0);
 
-  glBindAttribLocation(shader_program, 0, "in_position");
+  qw_glBindAttribLocation(shader_program, 0, "in_position");
 
-  u_view   = glGetUniformLocation(shader_program, "u_view");
-  u_object = glGetUniformLocation(shader_program, "u_object");
-  u_color  = glGetUniformLocation(shader_program, "u_color");
+  u_view   = qw_glGetUniformLocation(shader_program, "u_view");
+  u_object = qw_glGetUniformLocation(shader_program, "u_object");
+  u_color  = qw_glGetUniformLocation(shader_program, "u_color");
 }
 
 void qw_cleanup(void) {
   shaders_cleanup();
 
-  glDeleteBuffers(1, &vertex_buffer);
-  glDeleteVertexArrays(1, &vertex_array);
+  qw_glDeleteBuffers(1, &vertex_buffer);
+  qw_glDeleteVertexArrays(1, &vertex_array);
 }
 
 void qw_size(int const width, int const height) {
-  glViewport(0, 0, width, height);
+  qw_glViewport(0, 0, width, height);
   aspect_ratio = ((vec_t) width) / (vec_t) height;
 }
 
@@ -300,23 +304,23 @@ int qw_frame(int64_t const time_elapsed) {
 
   time += ((vec_t) time_elapsed) / 1000.f;
 
-  glClearColor(back_color.v[0], back_color.v[1], back_color.v[2],
-               1.f);
-  glClearDepth(1.0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  qw_glClearColor(back_color.v[0], back_color.v[1], back_color.v[2],
+                  1.f);
+  qw_glClearDepthf(1.f);
+  qw_glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glEnable(GL_DEPTH_TEST);
+  qw_glEnable(GL_DEPTH_TEST);
 
-  glUseProgram(shader_program);
-  glUniformMatrix4fv(u_view, 1, GL_FALSE, view.v);
-  glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
-  glUniform4f(u_color, color.v[0], color.v[1], color.v[2], 1.f);
+  qw_glUseProgram(shader_program);
+  qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, view.v);
+  qw_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
+  qw_glUniform4f(u_color, color.v[0], color.v[1], color.v[2], 1.f);
 
-  glBindVertexArray(vertex_array);
-  glDrawArrays(GL_TRIANGLES, 0, 6);
+  qw_glBindVertexArray(vertex_array);
+  qw_glDrawArrays(GL_TRIANGLES, 0, 6);
 
-  glBindVertexArray(0);
-  glUseProgram(0);
+  qw_glBindVertexArray(0);
+  qw_glUseProgram(0);
 
   return QW_CONTINUE;
 }

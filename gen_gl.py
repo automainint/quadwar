@@ -4,6 +4,45 @@ def main():
   import xml.etree.ElementTree
   import os, shutil
 
+  funcs_whitelist = ['glCreateProgram',
+                     'glProgramBinary',
+                     'glCreateShader',
+                     'glShaderSource',
+                     'glCompileShader',
+                     'glGetShaderiv',
+                     'glGetShaderInfoLog',
+                     'glAttachShader',
+                     'glLinkProgram',
+                     'glGetProgramiv',
+                     'glGetProgramInfoLog',
+                     'glGetProgramBinary',
+                     'glDeleteProgram',
+                     'glDeleteShader',
+                     'glDeleteShader',
+                     'glBindAttribLocation',
+                     'glGetUniformLocation',
+                     'glGenVertexArrays',
+                     'glBindVertexArray',
+                     'glGenBuffers',
+                     'glBindBuffer',
+                     'glBufferData',
+                     'glVertexAttribPointer',
+                     'glEnableVertexAttribArray',
+                     'glBindVertexArray',
+                     'glDeleteBuffers',
+                     'glDeleteVertexArrays',
+                     'glViewport',
+                     'glClearColor',
+                     'glClearDepthf',
+                     'glClear',
+                     'glEnable',
+                     'glUseProgram',
+                     'glUniformMatrix4fv',
+                     'glUniform4f',
+                     'glBindVertexArray',
+                     'glDrawArrays',
+                     'glBindVertexArray']
+
   folder = os.path.join('source', 'quadwar', 'gl')
   gl_folder = '.gen_gl'
 
@@ -77,6 +116,8 @@ def main():
     return arg
 
   def args_str(args):
+    if len(args) == 0:
+      return '(void)';
     s = ''
     for arg in args:
       if len(s) > 0:
@@ -93,7 +134,6 @@ def main():
   types = list()
   enums = list()
   funcs = list()
-  extensions = list()
 
   types.append('typedef uint32_t GLhandleARB;')
 
@@ -140,23 +180,8 @@ def main():
               args.append([type_full, aname.text])
             else:
               args.append([type_full, ''])
-        funcs.append([name, proto_full, args, 0, ''])
-
-  for child in root:
-    if child.tag == 'extensions':
-      for ex in child.findall('extension'):
-        name = ex.get('name')
-        cmds = list()
-        for req in ex.findall('require'):
-          for cmd in req.findall('command'):
-            fname = cmd.get('name')
-            for i, f in enumerate(funcs):
-              if f[0] == fname:
-                funcs[i][3] += 1
-                cmds.append(i)
-                break
-        if len(cmds) > 0:
-          extensions.append([name, cmds])
+        if name in funcs_whitelist:
+          funcs.append([name, proto_full, args, 0, ''])
 
   enums_buf = enums
   enums = list()
@@ -213,15 +238,15 @@ def main():
   out.write('#include "types.inl.h"\n\n')
 
   for i, en in enumerate(enums):
-    out.write('#define ' + en[0] + ' ' + en[1]  + '\n')
+    out.write('#define ' + en[0] + ' ' + en[1] + '\n')
   out.write('\n')
 
   for i, en in enumerate(enums64):
-    out.write('#define ' + en[0] + ' ' + en[1]  + '\n')
+    out.write('#define ' + en[0] + ' ' + en[1] + '\n')
   out.write('\n')
 
   for i, en in enumerate(enumsSigned):
-    out.write('#define ' + en[0] + ' ' + en[1]  + '\n')
+    out.write('#define ' + en[0] + ' ' + en[1] + '\n')
   out.write('\n')
 
   out.write('#endif\n')
@@ -238,7 +263,7 @@ def main():
   out.write('\n')
 
   for f in funcs:
-    out.write('extern pfn_' + f[0] + ' ' + f[0] + ';\n')
+    out.write('extern pfn_' + f[0] + ' qw_' + f[0] + ';\n')
 
   out.write('\n')
   out.write('#endif\n')
@@ -251,116 +276,15 @@ def main():
   out.write('#include "decls.inl.h"\n\n')
 
   for f in funcs:
-    out.write('pfn_' + f[0] + ' ' + f[0] + ' = NULL;\n')
+    out.write('pfn_' + f[0] + ' qw_' + f[0] + ' = NULL;\n')
 
   out.write('\n')
   out.write('#endif\n')
 
   out = open(os.path.join(folder, 'loads.inl.h'), 'w')
 
-  for feat in root:
-    if feat.tag == 'feature':
-      out.write('//#define FEATURE_' + feat.get('name') + '\n');
-  out.write('\n');
-
-  for feat in root:
-    if feat.tag != 'feature':
-      continue
-    api = feat.get('api')
-    names = list()
-    for req in feat:
-      if req.tag == 'require':
-        for cmd in req:
-          if cmd.tag == 'command':
-            names.append(cmd.get('name'))
-    out.write('#ifdef FEATURE_' + feat.get('name') + '\n');
-    for f in names:
-      out.write('  ok = ok && LOAD_(' + f + ', "' + f + '");\n')
-    out.write('#endif\n\n');
-
-  for ex in extensions:
-    ex_fns = list()
-    for n in ex[1]:
-      if funcs[n][3] == 1:
-        ex_fns.append(funcs[n][0])
-    if len(ex_fns) > 0:
-      out.write('\nif (HAS_EXTENSION_("' + ex[0] + '")) {\n')
-      out.write('  int status_ = 1;\n')
-      for f in ex_fns:
-        out.write('  status_ = status_ && LOAD_(' + f + ', "' + f + '");\n')
-      out.write('  SAVE_EXTENSION_("' + ex[0] + '", status_);\n');
-      out.write('}\n')
-
-  # Custom dictionary utility
-  # with list-keys.
-
-  def is_equals(a, b):
-    """
-      a, b - lists
-      Check if two lists are aqual.
-    """
-    if len(a) != len(b):
-      return False
-    for i, x in enumerate(a):
-      if x != b[i]:
-        return False
-    return True
-
-  def check_key(keys, key):
-    """
-      keys  - list or (list -> list) pairs
-      key   - list
-
-      Add new list key to dictionary if needed.
-    """
-    for i, k in enumerate(keys):
-      if is_equals(k[0], key):
-        return keys
-    res = keys
-    res.append([key, list()])
-    return res
-
-  def append_to(keys, key, value):
-    """
-      keys  - list or (list -> list) pairs
-      key   - list
-      value - any data
-      
-      Append new value to dictionary element.
-    """
-    for i, k in enumerate(keys):
-      if is_equals(k[0], key):
-        res = keys
-        res[i][1].append(value)
-        return res
-    return keys
-
-  ex2_funcs = list()
-
-  for i, f in enumerate(funcs):
-    if f[3] > 1:
-      ex_list = list()
-      for ex in extensions:
-        for n in ex[1]:
-          if n == i:
-            ex_list.append(ex[0])
-      ex2_funcs = check_key(ex2_funcs, ex_list)
-      ex2_funcs = append_to(ex2_funcs, ex_list, f[0])
-
-  for ex in ex2_funcs:
-    reqs = ''
-    for name in ex[0]:
-      if len(reqs) > 0:
-        reqs += ' || '
-      reqs += 'HAS_EXTENSION_("' + name + '")'
-    out.write('\nif (' + reqs + ') {\n')
-    out.write('  int status_ = 1;\n')
-    for f in ex[1]:
-      out.write('  status_ = status_ && LOAD_(' + f + ', "' + f + '");\n')
-    for name in ex[0]:
-      out.write('  SAVE_EXTENSION_("' + name + '", status_);\n');
-    out.write('}\n')
-
+  for f in funcs:
+    out.write('LOAD_(qw_' + f[0] + ', "' + f[0] + '");\n')
 
 if __name__ == '__main__':
   main()
