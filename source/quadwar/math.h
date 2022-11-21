@@ -11,11 +11,11 @@
 extern "C" {
 #endif
 
-#define EPSILON .001f
+#define QW_EPSILON .001f
 
-#define REF_X 95.047f
-#define REF_Y 100.0f
-#define REF_Z 108.883f
+#define QW_REF_X 95.047f
+#define QW_REF_Y 100.0f
+#define QW_REF_Z 108.883f
 
 typedef float vec_t;
 
@@ -62,9 +62,9 @@ static vec3_t vec3_normal(vec3_t const v) {
   vec_t const z = v.v[2];
 
   vec_t const length_squared = x * x + y * y + z * z;
-  assert(length_squared >= EPSILON);
+  assert(length_squared >= QW_EPSILON);
 
-  if (length_squared < EPSILON) {
+  if (length_squared < QW_EPSILON) {
     vec3_t const n = { { 0.f, 0.f, 1.f } };
     return n;
   }
@@ -82,9 +82,9 @@ static vec4_t vec4_normal(vec4_t const v) {
   vec_t const w = v.v[3];
 
   vec_t const length_squared = x * x + y * y + z * z + w * w;
-  assert(length_squared >= EPSILON);
+  assert(length_squared >= QW_EPSILON);
 
-  if (length_squared < EPSILON) {
+  if (length_squared < QW_EPSILON) {
     vec4_t const n = { { 0.f, 0.f, 0.f, 1.f } };
     return n;
   }
@@ -235,8 +235,8 @@ static mat4_t mat4_perspective(vec_t const fovy,
 
 static vec3_t rgb_to_xyz(vec3_t const rgb) {
   vec_t red   = rgb.v[0];
-  vec_t green = rgb.v[0];
-  vec_t blue  = rgb.v[0];
+  vec_t green = rgb.v[1];
+  vec_t blue  = rgb.v[2];
 
   if (red > 0.04045f)
     red = powf(((red + 0.055f) / 1.055f), 2.4f);
@@ -263,9 +263,9 @@ static vec3_t rgb_to_xyz(vec3_t const rgb) {
 }
 
 static vec3_t xyz_to_lab(vec3_t const xyz) {
-  vec_t x = (xyz.v[0] / REF_X);
-  vec_t y = (xyz.v[1] / REF_Y);
-  vec_t z = (xyz.v[2] / REF_Z);
+  vec_t x = (xyz.v[0] / QW_REF_X);
+  vec_t y = (xyz.v[1] / QW_REF_Y);
+  vec_t z = (xyz.v[2] / QW_REF_Z);
 
   if (x > 0.008856f)
     x = powf(x, (1.f / 3.f));
@@ -313,7 +313,7 @@ static vec3_t lab_to_xyz(vec3_t const lab) {
   else
     z = (z - (16.f / 116.f)) / 7.787f;
 
-  return vec3(REF_X * x, REF_Y * y, REF_Z * z);
+  return vec3(QW_REF_X * x, QW_REF_Y * y, QW_REF_Z * z);
 }
 
 static vec3_t xyz_to_rgb(vec3_t const xyz) {
