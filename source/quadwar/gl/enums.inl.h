@@ -5972,10 +5972,10 @@
 #define GL_TIMEOUT_IGNORED 0xffffffffffffffff
 #define GL_TIMEOUT_IGNORED_APPLE 0xffffffffffffffff
 
-#define GL_NEXT_BUFFER_NV -2
-#define GL_SKIP_COMPONENTS4_NV -3
-#define GL_SKIP_COMPONENTS3_NV -4
-#define GL_SKIP_COMPONENTS2_NV -5
-#define GL_SKIP_COMPONENTS1_NV -6
+#define GL_NEXT_BUFFER_NV (-2)
+#define GL_SKIP_COMPONENTS4_NV (-3)
+#define GL_SKIP_COMPONENTS3_NV (-4)
+#define GL_SKIP_COMPONENTS2_NV (-5)
+#define GL_SKIP_COMPONENTS1_NV (-6)
 
 #endif

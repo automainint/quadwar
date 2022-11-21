@@ -177,33 +177,6 @@ int main(int argc, char **argv) {
     return QW_ERROR;
   }
 
-  /*
-#ifdef __EMSCRIPTEN__
-  emscripten_set_canvas_element_size("#canvas", DEFAULT_WINDOW_WIDTH,
-                                     DEFAULT_WINDOW_HEIGHT);
-  EmscriptenWebGLContextAttributes attr;
-  emscripten_webgl_init_context_attributes(&attr);
-  attr.alpha                        = 0;
-  attr.depth                        = 0;
-  attr.stencil                      = 0;
-  attr.antialias                    = 0;
-  attr.preserveDrawingBuffer        = 0;
-  attr.failIfMajorPerformanceCaveat = 0;
-  attr.enableExtensionsByDefault    = 1;
-  attr.premultipliedAlpha           = 0;
-  attr.majorVersion                 = gl_major;
-  attr.minorVersion                 = gl_minor;
-  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE glcontext =
-      emscripten_webgl_create_context("#canvas", &attr);
-  emscripten_webgl_make_context_current(glcontext);
-
-  if (qw_gl_load(qw_gl_get_proc_address, log_print_) != QW_OK) {
-    emscripten_webgl_destroy_context(glcontext);
-    SDL_DestroyWindow(g_app.window);
-    return QW_ERROR;
-  }
-#else
-   */
   SDL_GLContext const glcontext = SDL_GL_CreateContext(g_app.window);
 
   if (qw_gl_load(qw_gl_get_proc_address, log_print_) != QW_OK) {
@@ -211,9 +184,6 @@ int main(int argc, char **argv) {
     SDL_DestroyWindow(g_app.window);
     return QW_ERROR;
   }
-  /*
-#endif
-   */
 
   int const   cpu_count = SDL_GetCPUCount();
   char const *platform  = SDL_GetPlatform();

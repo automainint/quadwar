@@ -246,7 +246,7 @@ def main():
   out.write('\n')
 
   for i, en in enumerate(enumsSigned):
-    out.write('#define ' + en[0] + ' ' + en[1] + '\n')
+    out.write('#define ' + en[0] + ' (' + en[1] + ')\n')
   out.write('\n')
 
   out.write('#endif\n')

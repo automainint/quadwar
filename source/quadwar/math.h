@@ -13,6 +13,10 @@ extern "C" {
 
 #define EPSILON .001f
 
+#define REF_X 95.047f
+#define REF_Y 100.0f
+#define REF_Z 108.883f
+
 typedef float vec_t;
 
 typedef struct {
@@ -87,7 +91,7 @@ static vec4_t vec4_normal(vec4_t const v) {
 
   vec_t const  length = sqrtf(length_squared);
   vec4_t const n      = { { x / length, y / length, z / length,
-                            w / length } };
+                       w / length } };
 
   return n;
 }
@@ -229,54 +233,150 @@ static mat4_t mat4_perspective(vec_t const fovy,
   return mat4_frustum(-xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
-static vec3_t rgb_to_hsl(vec3_t const rgb) {
-  vec_t const x_max     = fmaxf(fmaxf(rgb.v[0], rgb.v[1]), rgb.v[2]);
-  vec_t const x_min     = fminf(fminf(rgb.v[0], rgb.v[1]), rgb.v[2]);
-  const vec_t chroma    = x_max - x_min;
-  vec_t const lightness = (x_max + x_min) / 2.f;
+static vec3_t rgb_to_xyz(vec3_t const rgb) {
+  vec_t red   = rgb.v[0];
+  vec_t green = rgb.v[0];
+  vec_t blue  = rgb.v[0];
 
-  vec_t hue        = 0.f;
-  vec_t saturation = 0.f;
+  if (red > 0.04045f)
+    red = powf(((red + 0.055f) / 1.055f), 2.4f);
+  else
+    red = red / 12.92f;
 
-  if (chroma > EPSILON) {
-    if (rgb.v[0] >= rgb.v[1] && rgb.v[0] >= rgb.v[2])
-      hue = ((rgb.v[1] - rgb.v[2]) / chroma) / 6.f;
-    else if (rgb.v[1] >= rgb.v[2])
-      hue = (2.f + (rgb.v[2] - rgb.v[0]) / chroma) / 6.f;
-    else
-      hue = (4.f + (rgb.v[0] - rgb.v[1]) / chroma) / 6.f;
-  }
+  if (green > 0.04045)
+    green = powf(((green + 0.055f) / 1.055f), 2.4f);
+  else
+    green = green / 12.92f;
 
-  vec_t const l_opposite = 1.f - lightness;
+  if (blue > 0.04045f)
+    blue = powf(((blue + 0.055f) / 1.055f), 2.4f);
+  else
+    blue = blue / 12.92f;
 
-  if (lightness > EPSILON && l_opposite > EPSILON)
-    saturation = (x_max - lightness) / fminf(lightness, l_opposite);
+  red   = red * 100.f;
+  green = green * 100.f;
+  blue  = blue * 100.f;
 
-  vec3_t const hsl = { { hue, saturation, lightness } };
-
-  return hsl;
+  return vec3(red * 0.4124f + green * 0.3576f + blue * 0.1805f,
+              red * 0.2126f + green * 0.7152f + blue * 0.0722f,
+              red * 0.0193f + green * 0.1192f + blue * 0.9505f);
 }
 
-static vec_t hsl_to_rgb_helper_(vec_t const hue12,
-                                vec_t const lightness,
-                                vec_t const alpha, vec_t const n) {
-  vec_t const k = fmodf(n + hue12, 12.f);
-  return lightness -
-         alpha * fmaxf(-1.f, fminf(fminf(k - 3.f, 9.f - k), 1.f));
+static vec3_t xyz_to_lab(vec3_t const xyz) {
+  vec_t x = (xyz.v[0] / REF_X);
+  vec_t y = (xyz.v[1] / REF_Y);
+  vec_t z = (xyz.v[2] / REF_Z);
+
+  if (x > 0.008856f)
+    x = powf(x, (1.f / 3.f));
+  else
+    x = (7.787f * x) + (16.f / 116.f);
+
+  if (y > 0.008856f)
+    y = powf(y, (1.f / 3.f));
+  else
+    y = (7.787f * y) + (16.f / 116.f);
+
+  if (z > 0.008856f)
+    z = powf(z, (1.f / 3.f));
+  else
+    z = (7.787f * z) + (16.f / 116.f);
+
+  vec_t const lightness = (116.f * y) - 16.f;
+  vec_t const a         = 500.f * (x - y);
+  vec_t const b         = 200.f * (y - z);
+
+  return vec3(lightness, a, b);
 }
 
-static vec3_t hsl_to_rgb(vec3_t const hsl) {
-  vec_t hue12     = hsl.v[0] * 12.f;
-  vec_t lightness = hsl.v[2];
-  vec_t alpha     = hsl.v[1] * fminf(hsl.v[2], 1.f - hsl.v[2]);
+static vec3_t lab_to_xyz(vec3_t const lab) {
+  vec_t const lightness = lab.v[0];
+  vec_t const a         = lab.v[1];
+  vec_t const b         = lab.v[2];
 
-  vec3_t const rgb = {
-    { hsl_to_rgb_helper_(hue12, lightness, alpha, 0),
-      hsl_to_rgb_helper_(hue12, lightness, alpha, 8),
-      hsl_to_rgb_helper_(hue12, lightness, alpha, 4) }
-  };
+  vec_t y = (lightness + 16.f) / 116.f;
+  vec_t x = (a / 500.f) + y;
+  vec_t z = y - (b / 200.f);
 
-  return rgb;
+  if (powf(y, 3.f) > 0.008856)
+    y = powf(y, 3.f);
+  else
+    y = (y - (16.f / 116.f)) / 7.787f;
+
+  if (powf(x, 3.f) > 0.008856f)
+    x = powf(x, 3.f);
+  else
+    x = (x - (16.f / 116.f)) / 7.787f;
+
+  if (powf(z, 3.f) > 0.008856f)
+    z = powf(z, 3.f);
+  else
+    z = (z - (16.f / 116.f)) / 7.787f;
+
+  return vec3(REF_X * x, REF_Y * y, REF_Z * z);
+}
+
+static vec3_t xyz_to_rgb(vec3_t const xyz) {
+  vec_t const x = xyz.v[0] / 100.f;
+  vec_t const y = xyz.v[1] / 100.f;
+  vec_t const z = xyz.v[2] / 100.f;
+
+  vec_t red   = x * 3.2406f + (y * -1.5372f) + z * (-0.4986f);
+  vec_t green = x * (-0.9689f) + y * 1.8758f + z * 0.0415f;
+  vec_t blue  = x * 0.0557f + y * (-0.2040f) + z * 1.0570f;
+
+  if (red > 0.0031308f)
+    red = 1.055f * powf(red, (1.0f / 2.4)) - 0.055f;
+  else
+    red = 12.92f * red;
+
+  if (green > 0.0031308f)
+    green = 1.055f * powf(green, (1.0f / 2.4)) - 0.055f;
+  else
+    green = 12.92f * green;
+
+  if (blue > 0.0031308f)
+    blue = 1.055f * powf(blue, (1.0f / 2.4)) - 0.055f;
+  else
+    blue = 12.92f * blue;
+
+  return vec3(red, green, blue);
+}
+
+static vec3_t lab_to_lch(vec3_t const lab) {
+  vec_t const lightness = lab.v[0];
+  vec_t const a         = lab.v[1];
+  vec_t const b         = lab.v[2];
+
+  vec_t const chroma = sqrtf(a * a + b * b);
+  vec_t const hue    = a == 0.f ? 0.f : atanf(b / a);
+
+  return vec3(lightness, chroma, hue);
+}
+
+static vec3_t lch_to_lab(vec3_t const lch) {
+  vec_t const lightness = lch.v[0];
+  vec_t const chroma    = lch.v[1];
+  vec_t const hue       = lch.v[2];
+
+  vec_t const a = chroma * cos(hue);
+  vec_t const b = chroma * sin(hue);
+
+  return vec3(lightness, a, b);
+}
+
+static vec3_t rgb_to_lch(vec3_t const rgb) {
+  vec3_t const xyz = rgb_to_xyz(rgb);
+  vec3_t const lab = xyz_to_lab(xyz);
+
+  return lab_to_lch(lab);
+}
+
+static vec3_t lch_to_rgb(vec3_t const lch) {
+  vec3_t const lab = lch_to_lab(lch);
+  vec3_t const xyz = lab_to_xyz(lab);
+
+  return xyz_to_rgb(xyz);
 }
 
 #ifdef __GNUC__

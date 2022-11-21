@@ -222,8 +222,7 @@ void qw_wheel(float const delta_x, float const delta_y) {
 void qw_init(void) {
   for (int i = 0; i < QW_KEY_MAP_SIZE; i++) qw_key_map[i] = i;
 
-  back_color = hsl_to_rgb(vec3(.75f, .07f, .45f));
-  color      = hsl_to_rgb(vec3(.02f, .47f, .47f));
+  back_color = lch_to_rgb(vec3(45.f, 7.f, .75f));
 
   qw_glGenVertexArrays(1, &vertex_array);
   qw_glBindVertexArray(vertex_array);
@@ -298,9 +297,9 @@ int qw_frame(int64_t const time_elapsed) {
 
   mat4_t const object = mat4_mul(position, rotation_matrix);
 
-  vec_t const hue = time / 100;
+  vec_t const hue = time / 10;
 
-  color = hsl_to_rgb(vec3(hue - floorf(hue), .47f, .47f));
+  color = lch_to_rgb(vec3(47.f, 47.f, (2.f * M_PI) * (hue - floorf(hue))));
 
   time += ((vec_t) time_elapsed) / 1000.f;
 
