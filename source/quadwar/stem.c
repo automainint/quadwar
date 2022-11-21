@@ -297,9 +297,10 @@ int qw_frame(int64_t const time_elapsed) {
 
   mat4_t const object = mat4_mul(position, rotation_matrix);
 
-  vec_t const hue = time / 10;
+  vec_t const hue = time / 30;
 
-  color = lch_to_rgb(vec3(47.f, 47.f, (2.f * M_PI) * (hue - floorf(hue))));
+  color = lch_to_rgb(
+      vec3(47.f, 47.f, (2.f * M_PI) * (hue - floorf(hue))));
 
   time += ((vec_t) time_elapsed) / 1000.f;
 
