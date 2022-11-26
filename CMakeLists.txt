@@ -82,7 +82,7 @@ if(CMAKE_BUILD_TYPE MATCHES "release|RELEASE|Release")
   endif()
 endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if(EMSCRIPTEN)
   target_link_options(${QUADWAR} PRIVATE -sFULL_ES3)
 endif()
 
