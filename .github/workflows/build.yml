@@ -28,3 +28,18 @@ jobs:
         run: |
           cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE -B build -S .
           cmake --build build --config $BUILD_TYPE
+
+  build-emscripten:
+    runs-on: ubuntu-latest
+
+    steps:
+     - uses: actions/checkout@v2
+
+     - uses: mymindstorm/setup-emsdk@v11
+
+     - name: Build
+       shell: bash
+       run: |
+         emcmake cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE -B build -S .
+         cmake --build build --config $BUILD_TYPE
+
