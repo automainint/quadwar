@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "" FORCE)
 
-set(QUADWAR_PROJECT quadwar)
-set(QUADWAR quadwar)
-
 if(NOT DEFINED CMAKE_BUILD_PARALLEL_LEVEL)
   set(CMAKE_BUILD_PARALLEL_LEVEL 4 CACHE STRING "" FORCE)
 endif()
+
+set(QUADWAR_PROJECT quadwar)
+set(QUADWAR quadwar)
 
 project(
   ${QUADWAR_PROJECT}
@@ -17,9 +17,7 @@ project(
 
 include(FetchContent)
 
-find_package(Threads)
 find_package(kit QUIET)
-find_package(SDL2 QUIET)
 
 if(NOT kit_FOUND)
   FetchContent_Declare(
@@ -30,22 +28,35 @@ if(NOT kit_FOUND)
   FetchContent_MakeAvailable(kit)
 endif()
 
-if(NOT SDL2_FOUND)
-  FetchContent_Declare(
-    SDL2
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG main)
-  set(SDL_TEST OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(SDL2)
-  add_library(SDL2::SDL2 ALIAS SDL2)
-  add_library(SDL2::SDL2main ALIAS SDL2main)
+add_executable(${QUADWAR})
+
+find_package(SDL3 QUIET)
+
+if(EMSCRIPTEN AND NOT SDL3_FOUND)
+  find_package(SDL2 REQUIRED)
+
+  target_link_libraries(
+    ${QUADWAR}
+    PRIVATE
+    kit::kit SDL2::SDL2 SDL2::SDL2main)
+else()
+  if(NOT SDL3_FOUND)
+    FetchContent_Declare(
+      SDL3
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+      GIT_TAG main)
+    set(SDL_TEST OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(SDL3)
+    add_library(SDL3::SDL3 ALIAS SDL3)
+    add_library(SDL3::SDL3main ALIAS SDL3main)
+  endif()
+
+  target_link_libraries(
+    ${QUADWAR}
+    PRIVATE
+    kit::kit SDL3::SDL3 SDL3::SDL3main)
 endif()
 
-add_executable(${QUADWAR})
-target_link_libraries(
-  ${QUADWAR}
-  PRIVATE
-  Threads::Threads kit::kit SDL2::SDL2 SDL2::SDL2main)
 if(NOT WIN32)
   target_link_libraries(${QUADWAR} PRIVATE m)
 endif()
