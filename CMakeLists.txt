@@ -39,6 +39,8 @@ if(EMSCRIPTEN AND NOT SDL3_FOUND)
     ${QUADWAR}
     PRIVATE
     kit::kit SDL2::SDL2 SDL2::SDL2main)
+
+  target_compile_definitions(${QUADWAR} PRIVATE QUADWAR_SDL2)
 else()
   if(NOT SDL3_FOUND)
     FetchContent_Declare(
@@ -48,13 +50,13 @@ else()
     set(SDL_TEST OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(SDL3)
     add_library(SDL3::SDL3 ALIAS SDL3)
-    add_library(SDL3::SDL3main ALIAS SDL3main)
+    add_library(SDL3::SDL3_main ALIAS SDL3_main)
   endif()
 
   target_link_libraries(
     ${QUADWAR}
     PRIVATE
-    kit::kit SDL3::SDL3 SDL3::SDL3main)
+    kit::kit SDL3::SDL3 SDL3::SDL3_main)
 endif()
 
 if(NOT WIN32)
