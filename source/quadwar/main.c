@@ -1,23 +1,18 @@
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
+#include "gl/gl.h"
+#include "stem.h"
 
-#ifdef QUADWAR_SDL2
-#  include <SDL.h>
-#  include <SDL_video.h>
-#else
-#  include <SDL3/SDL.h>
-#  include <SDL3/SDL_video.h>
-#endif
+#include <SDL.h>
+#include <SDL_video.h>
 
 #ifdef __EMSCRIPTEN__
 #  include <emscripten.h>
 #  include <emscripten/html5.h>
 #endif
 
-#include "gl/gl.h"
-#include "stem.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
 
 enum {
   DEFAULT_VSYNC = 0,

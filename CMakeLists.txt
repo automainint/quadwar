@@ -30,33 +30,25 @@ endif()
 
 add_executable(${QUADWAR})
 
-find_package(SDL3 QUIET)
+find_package(SDL2 QUIET)
 
-if(EMSCRIPTEN AND NOT SDL3_FOUND)
-  find_package(SDL2 REQUIRED)
-
+if(SDL2_FOUND)
   target_link_libraries(
     ${QUADWAR}
     PRIVATE
     kit::kit SDL2::SDL2 SDL2::SDL2main)
-
-  target_compile_definitions(${QUADWAR} PRIVATE QUADWAR_SDL2)
 else()
-  if(NOT SDL3_FOUND)
-    FetchContent_Declare(
-      SDL3
-      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-      GIT_TAG main)
-    set(SDL_TEST OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(SDL3)
-    add_library(SDL3::SDL3 ALIAS SDL3)
-    add_library(SDL3::SDL3_main ALIAS SDL3_main)
-  endif()
+  FetchContent_Declare(
+    SDL2
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG SDL2)
+  set(SDL_TEST OFF CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(SDL2)
 
   target_link_libraries(
     ${QUADWAR}
     PRIVATE
-    kit::kit SDL3::SDL3 SDL3::SDL3_main)
+    kit::kit SDL2 SDL2main)
 endif()
 
 if(NOT WIN32)
