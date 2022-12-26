@@ -26,5 +26,5 @@ int qw_gl_load(gl_get_proc_address_callback get_proc_address,
 
 #include "loads.inl.h"
 
-  return ok ? QW_OK : QW_ERROR;
+  return ok ? KIT_OK : QW_ERROR;
 }

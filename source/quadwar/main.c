@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 
   SDL_GLContext const glcontext = SDL_GL_CreateContext(g_app.window);
 
-  if (qw_gl_load(qw_gl_get_proc_address, log_print_) != QW_OK) {
+  if (qw_gl_load(qw_gl_get_proc_address, log_print_) != KIT_OK) {
     SDL_GL_DeleteContext(glcontext);
     SDL_DestroyWindow(g_app.window);
     return QW_ERROR;
@@ -241,5 +241,5 @@ int main(int argc, char **argv) {
   printf("\nBye\n");
 #endif
 
-  return QW_OK;
+  return KIT_OK;
 }

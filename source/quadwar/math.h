@@ -11,6 +11,10 @@
 extern "C" {
 #endif
 
+#ifndef M_PI
+#  define M_PI 3.14159265359
+#endif
+
 #define QW_EPSILON .001f
 
 #define QW_REF_X 95.047f
