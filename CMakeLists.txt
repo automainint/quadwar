@@ -29,11 +29,6 @@ endif()
 
 target_link_libraries(quadwar PRIVATE kit::kit)
 
-if(NOT EMSCRIPTEN)
-  include(FindOpenGL)
-  target_link_libraries(quadwar PRIVATE OpenGL::GL)
-endif()
-
 find_package(SDL2 QUIET)
 
 if(SDL2_FOUND)
