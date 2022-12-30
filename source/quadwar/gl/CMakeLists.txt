@@ -1,6 +1,11 @@
 target_sources(
   quadwar
+    PRIVATE
+      gl.c
     PUBLIC
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/gl3platform.h>
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/gl32.h>
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/khrplatform.h>)
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/enums.inl.h>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/loads.inl.h>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/types.inl.h>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/funcs.inl.h>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/gl.h>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/decls.inl.h>)
