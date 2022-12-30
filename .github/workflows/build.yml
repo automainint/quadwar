@@ -13,7 +13,7 @@ env:
   BUILD_TYPE: Debug
 
 jobs:
-  build:
+  build-native:
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-2019, macos-latest ]
