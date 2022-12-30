@@ -1,7 +1,7 @@
 #include "stem.h"
 
-#include "gl32.h"
 #include "math.h"
+#include <GLES3/gl32.h>
 #include <stdio.h>
 #include <stdlib.h>
 
