@@ -81,7 +81,7 @@ def gen_cmake(folder: str, target_name: str):
   write_subdirs(folder, target_name)
 
 def main():
-  gen_cmake(os.path.join('source', 'quadwar'), '${QUADWAR}')
+  gen_cmake(os.path.join('source', 'quadwar'), 'quadwar')
 
 if __name__ == '__main__':
   main()

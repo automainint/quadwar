@@ -1,4 +1,3 @@
-/.gen_gl/
 /*build*/
 *.swp
 *.cache_shader.bin

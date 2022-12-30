@@ -1,5 +1,5 @@
-#include "gl/gl.h"
 #include "stem.h"
+#include <kit/string_ref.h>
 
 #include <SDL.h>
 #include <SDL_video.h>
@@ -34,14 +34,6 @@ static int const buttons[] = {
   [SDL_BUTTON_X1]     = QW_KEY_BUTTON_X1,
   [SDL_BUTTON_X2]     = QW_KEY_BUTTON_X2
 };
-
-static void log_print_(str_t const message) {
-  printf("%*s", (int) message.size, message.values);
-}
-
-static void *qw_gl_get_proc_address(char const *const name) {
-  return SDL_GL_GetProcAddress(name);
-}
 
 static struct {
   SDL_Window     *window;
@@ -180,12 +172,6 @@ int main(int argc, char **argv) {
 
   SDL_GLContext const glcontext = SDL_GL_CreateContext(g_app.window);
 
-  if (qw_gl_load(qw_gl_get_proc_address, log_print_) != KIT_OK) {
-    SDL_GL_DeleteContext(glcontext);
-    SDL_DestroyWindow(g_app.window);
-    return QW_ERROR;
-  }
-
   int const   cpu_count = SDL_GetCPUCount();
   char const *platform  = SDL_GetPlatform();
   char const *video     = SDL_GetCurrentVideoDriver();
@@ -239,6 +225,8 @@ int main(int argc, char **argv) {
   SDL_Quit();
 
   printf("\nBye\n");
+#else
+  (void) glcontext;
 #endif
 
   return KIT_OK;
