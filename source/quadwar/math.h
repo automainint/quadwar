@@ -32,6 +32,10 @@ typedef struct {
 } vec4_t, quat_t;
 
 typedef struct {
+  vec_t v[9];
+} mat3_t;
+
+typedef struct {
   vec_t v[16];
 } mat4_t;
 
@@ -60,6 +64,68 @@ static quat_t quat(vec_t const x, vec_t const y, vec_t const z,
   return vec4(x, y, z, w);
 }
 
+static vec_t vec_abs(vec_t const x) {
+  return fabs(x);
+}
+
+static vec_t vec_max(vec_t const x, vec_t const y) {
+  return fmax(x, y);
+}
+
+static vec_t vec_sqrt(vec_t const x) {
+  return sqrtf(x);
+}
+
+static vec_t vec_sin(vec_t const x) {
+  return sinf(x);
+}
+
+static vec_t vec_cos(vec_t const x) {
+  return cosf(x);
+}
+
+static vec_t vec_asin(vec_t const x) {
+  return asinf(x);
+}
+
+static vec_t vec_acos(vec_t const x) {
+  return acosf(x);
+}
+
+static vec_t vec_atan(vec_t const x) {
+  return atanf(x);
+}
+
+static vec_t vec_atan2(vec_t const y, vec_t const x) {
+  return atan2f(y, x);
+}
+
+static vec3_t vec3_neg(vec3_t const a) {
+  return vec3(-a.v[0], -a.v[1], -a.v[2]);
+}
+
+static vec3_t vec3_add(vec3_t const a, vec3_t const b) {
+  return vec3(a.v[0] + b.v[0], a.v[1] + b.v[1], a.v[2] + b.v[2]);
+}
+
+static vec3_t vec3_sub(vec3_t const a, vec3_t const b) {
+  return vec3(a.v[0] - b.v[0], a.v[1] - b.v[1], a.v[2] - b.v[2]);
+}
+
+static vec3_t vec3_mul(vec3_t const v, vec_t const x) {
+  return vec3(v.v[0] * x, v.v[1] * x, v.v[2] * x);
+}
+
+static vec_t vec3_dot(vec3_t const a, vec3_t const b) {
+  return a.v[0] * b.v[0] + a.v[1] * b.v[1] + a.v[2] * b.v[2];
+}
+
+static vec3_t vec3_cross(vec3_t const a, vec3_t const b) {
+  return vec3(a.v[1] * b.v[2] - a.v[2] * b.v[1], //
+              a.v[2] * b.v[0] - a.v[0] * b.v[2], //
+              a.v[0] * b.v[1] - a.v[1] * b.v[0]);
+}
+
 static vec3_t vec3_normal(vec3_t const v) {
   vec_t const x = v.v[0];
   vec_t const y = v.v[1];
@@ -73,7 +139,7 @@ static vec3_t vec3_normal(vec3_t const v) {
     return n;
   }
 
-  vec_t const  length = sqrtf(length_squared);
+  vec_t const  length = vec_sqrt(length_squared);
   vec3_t const n      = { { x / length, y / length, z / length } };
 
   return n;
@@ -93,11 +159,15 @@ static vec4_t vec4_normal(vec4_t const v) {
     return n;
   }
 
-  vec_t const  length = sqrtf(length_squared);
+  vec_t const  length = vec_sqrt(length_squared);
   vec4_t const n      = { { x / length, y / length, z / length,
                        w / length } };
 
   return n;
+}
+
+static quat_t quat_conjugate(quat_t const q) {
+  return quat(-q.v[0], -q.v[1], -q.v[2], q.v[3]);
 }
 
 static quat_t quat_normal(quat_t const q) {
@@ -124,8 +194,8 @@ static quat_t quat_mul(quat_t const left, quat_t const right) {
 }
 
 static quat_t quat_rotation(vec_t const angle, vec3_t const axis) {
-  vec_t const s = sinf(angle / 2.f);
-  vec_t const c = cosf(angle / 2.f);
+  vec_t const s = vec_sin(angle / 2.f);
+  vec_t const c = vec_cos(angle / 2.f);
 
   vec_t const x = axis.v[0];
   vec_t const y = axis.v[1];
@@ -162,6 +232,79 @@ static mat4_t quat_to_mat4(quat_t const q) {
   return m;
 }
 
+static vec3_t vec3_rotate(vec3_t const v, quat_t const rotation) {
+  vec3_t const u = vec3(rotation.v[0], rotation.v[1], rotation.v[2]);
+  vec_t const  s = rotation.v[3];
+
+  return vec3_add(vec3_add(vec3_mul(u, 2.f * vec3_dot(u, v)),
+                           vec3_mul(v, s * s - vec3_dot(u, u))),
+                  vec3_mul(vec3_cross(u, v), 2.f * s));
+}
+
+static quat_t mat3_to_quat(mat3_t const m) {
+  vec_t four_x_squared_minus_1 = m.v[0] - m.v[4] - m.v[8];
+  vec_t four_y_squared_minus_1 = m.v[4] - m.v[0] - m.v[8];
+  vec_t four_z_squared_minus_1 = m.v[8] - m.v[0] - m.v[4];
+  vec_t four_w_squared_minus_1 = m.v[0] + m.v[4] + m.v[8];
+
+  int   biggest_index                = 0;
+  vec_t four_biggest_squared_minus_1 = four_w_squared_minus_1;
+
+  if (four_x_squared_minus_1 > four_biggest_squared_minus_1) {
+    four_biggest_squared_minus_1 = four_x_squared_minus_1;
+    biggest_index                = 1;
+  }
+
+  if (four_y_squared_minus_1 > four_biggest_squared_minus_1) {
+    four_biggest_squared_minus_1 = four_y_squared_minus_1;
+    biggest_index                = 2;
+  }
+
+  if (four_z_squared_minus_1 > four_biggest_squared_minus_1) {
+    four_biggest_squared_minus_1 = four_z_squared_minus_1;
+    biggest_index                = 3;
+  }
+
+  vec_t const biggest_val = vec_sqrt(four_biggest_squared_minus_1 +
+                                     1.f) *
+                            .5f;
+  vec_t const mult = .25f / biggest_val;
+
+  switch (biggest_index) {
+    case 0:
+      return quat((m.v[5] - m.v[7]) * mult, (m.v[6] - m.v[2]) * mult,
+                  (m.v[1] - m.v[3]) * mult, biggest_val);
+    case 1:
+      return quat(biggest_val, (m.v[1] + m.v[3]) * mult,
+                  (m.v[6] + m.v[2]) * mult, (m.v[5] - m.v[7]) * mult);
+    case 2:
+      return quat((m.v[1] + m.v[3]) * mult, biggest_val,
+                  (m.v[5] + m.v[7]) * mult, (m.v[6] - m.v[2]) * mult);
+    case 3:
+      return quat((m.v[6] + m.v[2]) * mult, (m.v[5] + m.v[7]) * mult,
+                  biggest_val, (m.v[1] - m.v[3]) * mult);
+    default:;
+  }
+
+  assert(0);
+  return quat(0.f, 0.f, 0.f, 1.f);
+}
+
+static quat_t quat_look_at(vec3_t const direction, vec3_t const up) {
+  vec3_t const m2    = vec3_neg(direction);
+  vec3_t const right = vec3_cross(up, m2);
+  vec3_t const m0    = vec3_mul(
+         right,
+         1.f / vec_sqrt(vec_max(QW_EPSILON, vec3_dot(right, right))));
+  vec3_t const m1 = vec3_cross(m0, m2);
+  mat3_t const m  = { {
+      m0.v[0], m0.v[1], m0.v[2], //
+      m1.v[0], m1.v[1], m1.v[2], //
+      m2.v[0], m2.v[1], m2.v[2]  //
+  } };
+  return mat3_to_quat(m);
+}
+
 static mat4_t mat4_mul(mat4_t const left, mat4_t const right) {
   mat4_t m;
   memset(&m, 0, sizeof m);
@@ -182,7 +325,7 @@ static mat4_t mat4_move(vec3_t const offset) {
   mat4_t const m = { { 1.f, 0.f, 0.f, 0.f, //
                        0.f, 1.f, 0.f, 0.f, //
                        0.f, 0.f, 1.f, 0.f, //
-                       x, y, z, 1.f } };
+                       -x, -y, -z, 1.f } };
 
   return m;
 }
@@ -353,7 +496,7 @@ static vec3_t lab_to_lch(vec3_t const lab) {
   vec_t const b         = lab.v[2];
 
   vec_t const chroma = sqrtf(a * a + b * b);
-  vec_t const hue    = a == 0.f ? 0.f : atanf(b / a);
+  vec_t const hue    = a == 0.f ? 0.f : vec_atan(b / a);
 
   return vec3(lightness, chroma, hue);
 }

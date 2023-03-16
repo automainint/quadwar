@@ -1,5 +1,6 @@
 #include "stem.h"
 
+#include "camera.h"
 #include "gl/gl.h"
 #include "math.h"
 #include <stdio.h>
@@ -15,11 +16,11 @@ static char const *const vertex_shader_source = //
           in vec3 in_position; //
 
           void main(void) { //
-            qw_gl_Position = (u_view * u_object) * vec4(in_position.x,
-                                                        in_position.y,
-                                                        in_position.z,
-                                                        1.0); //
-          }                                                   //
+            gl_Position = (u_view * u_object) * vec4(in_position.x,
+                                                     in_position.y,
+                                                     in_position.z,
+                                                     1.0); //
+          }                                                //
     );
 
 static char const *const fragment_shader_source = //
@@ -30,7 +31,7 @@ static char const *const fragment_shader_source = //
 
         out vec4 out_color; //
 
-        void main() {          //
+        void main(void) {      //
           out_color = u_color; //
         }                      //
     );
@@ -55,12 +56,9 @@ static vec_t time = 0.f;
 static vec3_t back_color = { { 0.f, 0.f, 0.f } };
 static vec3_t color      = { { 1.f, 1.f, 1.f } };
 
-static quat_t rotation = { { 0.f, 0.f, 0.f, 1.f } };
-static vec_t  rotate_x = 0.f;
-static vec_t  rotate_y = 0.f;
-static vec_t  rotate_z = 0.f;
+static int8_t is_down[QW_KEY_MAP_SIZE];
 
-static int is_left_button = 0;
+static camera_t camera;
 
 static void shaders_build(int rebuild) {
   static char const cache_file[] = ".cache_shader.bin";
@@ -187,8 +185,9 @@ static void shaders_cleanup(void) {
 }
 
 void qw_down(int const key) {
+  is_down[key] = 1;
+
   switch (key) {
-    case QW_KEY_BUTTON_LEFT: is_left_button = 1; break;
     case QW_KEY_RETURN:
       printf("Rebuild shaders\n");
       shaders_cleanup();
@@ -198,25 +197,48 @@ void qw_down(int const key) {
       u_object = qw_glGetUniformLocation(shader_program, "u_object");
       u_color  = qw_glGetUniformLocation(shader_program, "u_color");
       break;
+
     default:;
   }
 }
 
 void qw_up(int const key) {
-  if (key == QW_KEY_BUTTON_LEFT)
-    is_left_button = 0;
+  is_down[key] = 0;
 }
 
 void qw_motion(int const x, int const y, int const delta_x,
                int const delta_y) {
-  if (is_left_button) {
-    rotate_x -= (vec_t) M_PI * sense_motion * (vec_t) delta_y;
-    rotate_y -= (vec_t) M_PI * sense_motion * (vec_t) delta_x;
+  if (is_down[QW_KEY_BUTTON_LEFT]) {
+    quat_t const rotation = quat_mul(
+        quat_rotation(-delta_x * sense_motion, qw_camera_up),
+        quat_rotation(delta_y * sense_motion, qw_camera_right));
+
+    camera = camera_rotate_local(camera, rotation);
+
+    vec3_t const right = vec3_normal(
+        vec3_rotate(qw_camera_right, camera.rotation));
+    vec_t const angle = vec_asin(vec3_dot(qw_camera_up, right));
+
+    camera = camera_rotate_local(
+        camera, quat_rotation(angle, qw_camera_forward));
+  }
+
+  if (is_down[QW_KEY_BUTTON_RIGHT]) {
+    vec3_t const offset = vec3_rotate(
+        vec3_add(vec3_mul(qw_camera_right, -delta_x * sense_motion),
+                 vec3_mul(qw_camera_up, -delta_y * sense_motion)),
+        camera.rotation);
+
+    camera = camera_move(camera, offset);
   }
 }
 
 void qw_wheel(float const delta_x, float const delta_y) {
-  rotate_z += (vec_t) M_PI * sense_wheel * (vec_t) delta_y;
+  vec3_t const offset = vec3_rotate(
+      vec3_mul(qw_camera_forward, delta_y * sense_wheel),
+      camera.rotation);
+
+  camera = camera_move(camera, offset);
 }
 
 void qw_init(void) {
@@ -230,12 +252,12 @@ void qw_init(void) {
   qw_glGenBuffers(1, &vertex_buffer);
   qw_glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
 
-  vec_t const data[] = { -.5f, -.5f, 0.f, //
-                         -.5f, .5f,  0.f, //
-                         .5f,  .5f,  0.f, //
-                         -.5f, -.5f, 0.f, //
-                         .5f,  .5f,  0.f, //
-                         .5f,  -.5f, 0.f };
+  vec_t const data[] = { -.5f, 0.f, -.5f, //
+                         -.5f, 0.f, .5f,  //
+                         .5f,  0.f, .5f,  //
+                         -.5f, 0.f, -.5f, //
+                         .5f,  0.f, .5f,  //
+                         .5f,  0.f, -.5f };
 
   qw_glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STATIC_DRAW);
 
@@ -251,6 +273,8 @@ void qw_init(void) {
   u_view   = qw_glGetUniformLocation(shader_program, "u_view");
   u_object = qw_glGetUniformLocation(shader_program, "u_object");
   u_color  = qw_glGetUniformLocation(shader_program, "u_color");
+
+  camera = camera_look_at(vec3(-1.f, 2.f, -1.f), vec3(0.f, 0.f, 0.f));
 }
 
 void qw_cleanup(void) {
@@ -266,36 +290,10 @@ void qw_size(int const width, int const height) {
 }
 
 int qw_frame(int64_t const time_elapsed) {
-  static vec3_t const axis_x = { { 1.f, 0.f, 0.f } };
-  static vec3_t const axis_y = { { 0.f, 1.f, 0.f } };
-  static vec3_t const axis_z = { { 0.f, 0.f, 1.f } };
-
-  if (rotate_x != 0.f) {
-    rotation = quat_normal(
-        quat_mul(rotation, quat_rotation(rotate_x, axis_x)));
-    rotate_x = 0;
-  }
-
-  if (rotate_y != 0.f) {
-    rotation = quat_normal(
-        quat_mul(rotation, quat_rotation(rotate_y, axis_y)));
-    rotate_y = 0;
-  }
-
-  if (rotate_z != 0.f) {
-    rotation = quat_normal(
-        quat_mul(rotation, quat_rotation(rotate_z, axis_z)));
-    rotate_z = 0;
-  }
-
-  mat4_t const position = mat4_move(vec3(0.f, 0.f, -4.f));
-
-  mat4_t const rotation_matrix = quat_to_mat4(rotation);
-
   mat4_t const view = mat4_perspective(M_PI * .1f, aspect_ratio, .1f,
                                        400.f);
 
-  mat4_t const object = mat4_mul(position, rotation_matrix);
+  mat4_t const object = camera_to_mat4(camera);
 
   vec_t const hue = time / 30;
 
