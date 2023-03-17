@@ -38,6 +38,7 @@ def main():
                      'glEnable',
                      'glUseProgram',
                      'glUniformMatrix4fv',
+                     'glUniform3f',
                      'glUniform4f',
                      'glBindVertexArray',
                      'glDrawArrays',

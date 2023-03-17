@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "gl/gl.h"
 #include "math.h"
+#include <kit/mersenne_twister_64.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,11 +15,16 @@ static char const *const vertex_shader_source = //
           uniform mat4 u_object;                //
 
           in vec3 in_position; //
+          in vec3 in_normal;   //
 
-          void main(void) { //
-            gl_Position = (u_view * u_object) * vec4(in_position.x,
-                                                     in_position.y,
-                                                     in_position.z,
+          out vec3 f_position; //
+          out vec3 f_normal;   //
+
+          void main(void) {           //
+            f_position = in_position; //
+            f_normal   = in_normal;   //
+
+            gl_Position = (u_view * u_object) * vec4(in_position,
                                                      1.0); //
           }                                                //
     );
@@ -26,14 +32,40 @@ static char const *const vertex_shader_source = //
 static char const *const fragment_shader_source = //
     "#version 300 es\n"                           //
     CODE_(                                        //
-        precision    highp float;                 //
-        uniform vec4 u_color;                     //
+        precision highp float;                    //
+
+        uniform vec3 u_eye;   //
+        uniform vec3 u_light; //
+        uniform vec4 u_color; //
+
+        in vec3 f_position; //
+        in vec3 f_normal;   //
 
         out vec4 out_color; //
 
-        void main(void) {      //
-          out_color = u_color; //
-        }                      //
+        void main(void) {                          //
+          vec3  d = u_light - f_position;          //
+          vec3  r = normalize(d);                  //
+          vec3  s = normalize(u_eye - f_position); //
+          float k = dot(r, f_normal);              //
+          float l = dot(s, f_normal);              //
+
+          float ambient   = 0.1;                            //
+          float diffusion = 2500.0 * k / dot(d, d);         //
+          float specular  = dot(r, f_normal * l * 2.0 - s); //
+
+          if (k <= 0.0)       //
+            diffusion = 0.0;  //
+          if (specular < 0.0) //
+            specular = 0.0;   //
+
+          if (specular > 0.0)               //
+            specular = pow(specular, 15.0); //
+
+          out_color = clamp(
+              u_color * (ambient + diffusion + specular),
+              vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0)); //
+        }                                                          //
     );
 
 static GLuint vertex_array;
@@ -44,13 +76,16 @@ static GLuint shader_program;
 
 static GLint u_view;
 static GLint u_object;
+static GLint u_eye;
+static GLint u_light;
 static GLint u_color;
 
 static vec_t aspect_ratio = 1.f;
 
-static vec_t const sense_motion   = .004f;
-static vec_t const sense_wheel    = .13f;
-static vec_t const sense_movement = .007f;
+static vec_t const sense_motion       = .004f;
+static vec_t const sense_wheel        = .13f;
+static vec_t const sense_movement     = .007f;
+static vec_t const sense_acceleration = 5.f;
 
 static vec_t time = 0.f;
 
@@ -60,11 +95,22 @@ static vec3_t color      = { { 1.f, 1.f, 1.f } };
 static int8_t is_down[QW_KEY_MAP_SIZE];
 
 static vec3_t const world_up             = { { 0.f, 0.f, 1.f } };
-static int          camera_mode          = 1;
-static int          camera_normalization = 0;
 static vec_t        camera_normal_factor = .005f;
 
+static int camera_mode          = 0;
+static int camera_normalization = 1;
+
 static camera_t camera;
+
+enum {
+  MAP_SIZE_X      = 100,
+  MAP_SIZE_Y      = 100,
+  MAP_DATA_OFFSET = MAP_SIZE_X * MAP_SIZE_Y * 18
+};
+
+#define MAP_SCALE_Z 0.001f
+
+#define OFFSET(x) ((void *) (sizeof(vec_t) * (x)))
 
 static void shaders_build(int rebuild) {
   static char const cache_file[] = ".cache_shader.bin";
@@ -182,6 +228,15 @@ static void shaders_build(int rebuild) {
 #endif
     }
   }
+
+  qw_glBindAttribLocation(shader_program, 0, "in_position");
+  qw_glBindAttribLocation(shader_program, 1, "in_normal");
+
+  u_view   = qw_glGetUniformLocation(shader_program, "u_view");
+  u_object = qw_glGetUniformLocation(shader_program, "u_object");
+  u_eye    = qw_glGetUniformLocation(shader_program, "u_eye");
+  u_light  = qw_glGetUniformLocation(shader_program, "u_light");
+  u_color  = qw_glGetUniformLocation(shader_program, "u_color");
 }
 
 static void shaders_cleanup(void) {
@@ -198,10 +253,6 @@ void qw_down(int const key) {
       printf("Rebuild shaders\n");
       shaders_cleanup();
       shaders_build(1);
-      qw_glBindAttribLocation(shader_program, 0, "in_position");
-      u_view   = qw_glGetUniformLocation(shader_program, "u_view");
-      u_object = qw_glGetUniformLocation(shader_program, "u_object");
-      u_color  = qw_glGetUniformLocation(shader_program, "u_color");
       break;
 
     case QW_KEY_R:
@@ -296,27 +347,119 @@ void qw_init(void) {
   qw_glGenBuffers(1, &vertex_buffer);
   qw_glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
 
-  vec_t const data[] = { -.5f, -.5f, 0.f, //
-                         -.5f, .5f,  0.f, //
-                         .5f,  .5f,  0.f, //
-                         -.5f, -.5f, 0.f, //
-                         .5f,  .5f,  0.f, //
-                         .5f,  -.5f, 0.f };
+  mt64_state_t mt64;
+  mt64_init(&mt64, 31415);
+  mt64_rotate(&mt64);
+
+  vec_t data[MAP_DATA_OFFSET * 2];
+
+  vec_t *const vertices = data;
+  vec_t *const normals  = data + MAP_DATA_OFFSET;
+
+#define N_(x, y) (((y) *MAP_SIZE_X + (x)) * 18)
+
+  for (ptrdiff_t j = 0; j < MAP_SIZE_Y; j++)
+    for (ptrdiff_t i = 0; i < MAP_SIZE_X; i++) {
+      ptrdiff_t const n = N_(i, j);
+
+      uint64_t const z0 = mt64_generate(&mt64) % 1000;
+      uint64_t const z1 = mt64_generate(&mt64) % 1000;
+      uint64_t const z2 = mt64_generate(&mt64) % 1000;
+      uint64_t const z3 = mt64_generate(&mt64) % 1000;
+
+      vec_t const h0 = -3.f + MAP_SCALE_Z * z0;
+      vec_t const h1 = -3.f + MAP_SCALE_Z * z1;
+      vec_t const h2 = -3.f + MAP_SCALE_Z * z2;
+      vec_t const h3 = -3.f + MAP_SCALE_Z * z3;
+
+      if (j > 0) {
+        vertices[n + 2]  = vertices[N_(i, j - 1) + 17];
+        vertices[n + 11] = vertices[N_(i, j - 1) + 17];
+        vertices[n + 5]  = vertices[N_(i, j - 1) + 8];
+      } else {
+        if (i > 0) {
+          vertices[n + 2]  = vertices[N_(i - 1, j) + 5];
+          vertices[n + 11] = vertices[N_(i - 1, j) + 5];
+        } else {
+          vertices[n + 2]  = h0;
+          vertices[n + 11] = h0;
+        }
+        vertices[n + 5] = h1;
+      }
+
+      if (i > 0)
+        vertices[n + 17] = vertices[N_(i - 1, j) + 8];
+      else
+        vertices[n + 17] = h2;
+
+      vertices[n + 8]  = h3;
+      vertices[n + 14] = h3;
+
+      vertices[n]     = -MAP_SIZE_X * .5f + i;
+      vertices[n + 1] = -MAP_SIZE_Y * .5f + j;
+
+      vertices[n + 3] = -MAP_SIZE_X * .5f + i + 1;
+      vertices[n + 4] = -MAP_SIZE_Y * .5f + j;
+
+      vertices[n + 6] = -MAP_SIZE_X * .5f + i + 1;
+      vertices[n + 7] = -MAP_SIZE_Y * .5f + j + 1;
+
+      vertices[n + 9]  = -MAP_SIZE_X * .5f + i;
+      vertices[n + 10] = -MAP_SIZE_Y * .5f + j;
+
+      vertices[n + 12] = -MAP_SIZE_X * .5f + i + 1;
+      vertices[n + 13] = -MAP_SIZE_Y * .5f + j + 1;
+
+      vertices[n + 15] = -MAP_SIZE_X * .5f + i;
+      vertices[n + 16] = -MAP_SIZE_Y * .5f + j + 1;
+
+      vec3_t const r0 = vec3(1.f, 0.f,
+                             vertices[n + 5] - vertices[n + 2]);
+      vec3_t const r1 = vec3(0.f, 1.f,
+                             vertices[n + 17] - vertices[n + 2]);
+
+      vec3_t const r = vec3_normal(vec3_cross(r0, r1));
+
+      normals[n]     = r.v[0];
+      normals[n + 1] = r.v[1];
+      normals[n + 2] = r.v[2];
+
+      normals[n + 3] = r.v[0];
+      normals[n + 4] = r.v[1];
+      normals[n + 5] = r.v[2];
+
+      normals[n + 6] = r.v[0];
+      normals[n + 7] = r.v[1];
+      normals[n + 8] = r.v[2];
+
+      normals[n + 9]  = r.v[0];
+      normals[n + 10] = r.v[1];
+      normals[n + 11] = r.v[2];
+
+      normals[n + 12] = r.v[0];
+      normals[n + 13] = r.v[1];
+      normals[n + 14] = r.v[2];
+
+      normals[n + 15] = r.v[0];
+      normals[n + 16] = r.v[1];
+      normals[n + 17] = r.v[2];
+    }
+
+#undef N_
 
   qw_glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STATIC_DRAW);
 
-  qw_glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+  qw_glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, OFFSET(0));
+
+  qw_glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0,
+                           OFFSET(MAP_DATA_OFFSET));
+
   qw_glEnableVertexAttribArray(0);
+  qw_glEnableVertexAttribArray(1);
 
   qw_glBindVertexArray(0);
 
   shaders_build(0);
-
-  qw_glBindAttribLocation(shader_program, 0, "in_position");
-
-  u_view   = qw_glGetUniformLocation(shader_program, "u_view");
-  u_object = qw_glGetUniformLocation(shader_program, "u_object");
-  u_color  = qw_glGetUniformLocation(shader_program, "u_color");
 
   camera = camera_look_at(vec3(-1.f, .5f, 2.f), vec3(0.f, 0.f, 0.f));
 }
@@ -334,23 +477,28 @@ void qw_size(int const width, int const height) {
 }
 
 int qw_frame(int64_t const time_elapsed) {
+  vec_t const movement_factor = is_down[QW_KEY_LSHIFT]
+                                    ? sense_movement *
+                                          sense_acceleration
+                                    : sense_movement;
+
   if (is_down[QW_KEY_A])
     camera = camera_move_local(
         camera,
-        vec3_mul(camera_right, -sense_movement * time_elapsed));
+        vec3_mul(camera_right, -movement_factor * time_elapsed));
   if (is_down[QW_KEY_D])
     camera = camera_move_local(
         camera,
-        vec3_mul(camera_right, sense_movement * time_elapsed));
+        vec3_mul(camera_right, movement_factor * time_elapsed));
 
   if (is_down[QW_KEY_W])
     camera = camera_move_local(
         camera,
-        vec3_mul(camera_forward, -sense_movement * time_elapsed));
+        vec3_mul(camera_forward, -movement_factor * time_elapsed));
   if (is_down[QW_KEY_S])
     camera = camera_move_local(
         camera,
-        vec3_mul(camera_forward, sense_movement * time_elapsed));
+        vec3_mul(camera_forward, movement_factor * time_elapsed));
 
   if (camera_normalization)
     camera = camera_normal_local(camera, world_up,
@@ -378,10 +526,13 @@ int qw_frame(int64_t const time_elapsed) {
   qw_glUseProgram(shader_program);
   qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, view.v);
   qw_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
+  qw_glUniform3f(u_eye, camera.position.v[0], camera.position.v[1],
+                 camera.position.v[2]);
+  qw_glUniform3f(u_light, 10.f, 15.f, 20.f);
   qw_glUniform4f(u_color, color.v[0], color.v[1], color.v[2], 1.f);
 
   qw_glBindVertexArray(vertex_array);
-  qw_glDrawArrays(GL_TRIANGLES, 0, 6);
+  qw_glDrawArrays(GL_TRIANGLES, 0, MAP_SIZE_X * MAP_SIZE_Y * 6);
 
   qw_glBindVertexArray(0);
   qw_glUseProgram(0);

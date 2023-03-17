@@ -32,6 +32,7 @@ pfn_glGetUniformLocation qw_glGetUniformLocation = NULL;
 pfn_glLinkProgram qw_glLinkProgram = NULL;
 pfn_glProgramBinary qw_glProgramBinary = NULL;
 pfn_glShaderSource qw_glShaderSource = NULL;
+pfn_glUniform3f qw_glUniform3f = NULL;
 pfn_glUniform4f qw_glUniform4f = NULL;
 pfn_glUniformMatrix4fv qw_glUniformMatrix4fv = NULL;
 pfn_glUseProgram qw_glUseProgram = NULL;

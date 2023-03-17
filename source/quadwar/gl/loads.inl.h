@@ -27,6 +27,7 @@ LOAD_(qw_glGetUniformLocation, "glGetUniformLocation");
 LOAD_(qw_glLinkProgram, "glLinkProgram");
 LOAD_(qw_glProgramBinary, "glProgramBinary");
 LOAD_(qw_glShaderSource, "glShaderSource");
+LOAD_(qw_glUniform3f, "glUniform3f");
 LOAD_(qw_glUniform4f, "glUniform4f");
 LOAD_(qw_glUniformMatrix4fv, "glUniformMatrix4fv");
 LOAD_(qw_glUseProgram, "glUseProgram");
