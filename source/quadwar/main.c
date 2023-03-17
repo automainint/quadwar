@@ -74,7 +74,14 @@ static void loop(void) {
           if (event.key.keysym.sym == SDLK_LALT ||
               event.key.keysym.sym == SDLK_RALT)
             g_app.is_alt++;
-#ifndef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
+          if (!g_app.is_fullscreen &&
+              event.key.keysym.sym == SDLK_f) {
+            SDL_SetWindowFullscreen(g_app.window,
+                                    SDL_WINDOW_FULLSCREEN_DESKTOP);
+            g_app.is_fullscreen = 1;
+          }
+#else
           if (g_app.is_alt > 0 &&
               event.key.keysym.sym == SDLK_RETURN) {
             if (!g_app.is_fullscreen) {
@@ -109,6 +116,16 @@ static void loop(void) {
       case SDL_MOUSEBUTTONUP:
         qw_up(qw_key_map[buttons[event.button.button]]);
         break;
+#ifdef __EMSCRIPTEN__
+      case SDL_WINDOWEVENT:
+        /*  Emscripten sends this message when exiting fullscreen
+         *  mode.
+         */
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED &&
+            g_app.is_fullscreen)
+          g_app.is_fullscreen = 0;
+        break;
+#endif
       case SDL_QUIT: g_app.done = 1; break;
     }
   }
@@ -143,15 +160,17 @@ static void loop(void) {
   g_app.time_frame += time_elapsed_ms;
 
   if (g_app.time_frame >= 1000) {
+#ifndef __EMSCRIPTEN__
     printf("FPS: %d\r", g_app.frames);
     fflush(stdout);
+#endif
     g_app.frames = 0;
     g_app.time_frame -= 1000;
   }
 }
 
 int main(int argc, char **argv) {
-  printf("Quadwar, development version\n\n");
+  printf("Quadwar, development version\n");
 
   memset(&g_app, 0, sizeof g_app);
 
@@ -217,7 +236,6 @@ int main(int argc, char **argv) {
     printf("\n");
   if (audio != NULL)
     printf("Audio:    %s\n", audio);
-  printf("\n");
 
 #ifdef __EMSCRIPTEN__
   emscripten_set_main_loop(loop, 0, 0);

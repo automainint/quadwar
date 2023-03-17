@@ -56,11 +56,11 @@ camera_t camera_rotate(camera_t const camera, quat_t const rotation) {
 
 camera_t camera_normal(camera_t const camera, vec3_t const up) {
   vec3_t const right = vec3_normal(
-      vec3_rotate(qw_camera_right, camera.rotation));
+      vec3_rotate(camera_right, camera.rotation));
   vec_t const angle = vec_asin(vec3_dot(up, right));
 
   return camera_rotate_local(camera,
-                             quat_rotation(angle, qw_camera_forward));
+                             quat_rotation(-angle, camera_forward));
 }
 
 mat4_t camera_to_mat4(camera_t const camera) {

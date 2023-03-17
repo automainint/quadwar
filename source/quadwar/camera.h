@@ -12,9 +12,9 @@ typedef struct {
   quat_t rotation;
 } camera_t;
 
-static const vec3_t qw_camera_forward = { { 0.f, 0.f, -1.f } };
-static const vec3_t qw_camera_right   = { { 1.f, 0.f, 0.f } };
-static const vec3_t qw_camera_up      = { { 0.f, 1.f, 0.f } };
+static vec3_t const camera_forward = { { 0.f, 0.f, 1.f } };
+static vec3_t const camera_right   = { { 1.f, 0.f, 0.f } };
+static vec3_t const camera_up      = { { 0.f, 1.f, 0.f } };
 
 camera_t camera_look_at(vec3_t eye, vec3_t target);
 

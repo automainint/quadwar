@@ -48,8 +48,9 @@ static GLint u_color;
 
 static vec_t aspect_ratio = 1.f;
 
-static vec_t const sense_motion = .004f;
-static vec_t const sense_wheel  = .13f;
+static vec_t const sense_motion   = .004f;
+static vec_t const sense_wheel    = .13f;
+static vec_t const sense_movement = .007f;
 
 static vec_t time = 0.f;
 
@@ -210,8 +211,8 @@ void qw_motion(int const x, int const y, int const delta_x,
                int const delta_y) {
   if (is_down[QW_KEY_BUTTON_LEFT]) {
     quat_t const rotation = quat_mul(
-        quat_rotation(-delta_x * sense_motion, qw_camera_up),
-        quat_rotation(-delta_y * sense_motion, qw_camera_right));
+        quat_rotation(-delta_x * sense_motion, camera_up),
+        quat_rotation(-delta_y * sense_motion, camera_right));
 
     camera = camera_normal(camera_rotate_local(camera, rotation),
                            vec3(0.f, 0.f, 1.f));
@@ -219,8 +220,8 @@ void qw_motion(int const x, int const y, int const delta_x,
 
   if (is_down[QW_KEY_BUTTON_RIGHT]) {
     vec3_t const offset = vec3_add(
-        vec3_mul(qw_camera_right, delta_x * sense_motion),
-        vec3_mul(qw_camera_up, -delta_y * sense_motion));
+        vec3_mul(camera_right, delta_x * sense_motion),
+        vec3_mul(camera_up, -delta_y * sense_motion));
 
     camera = camera_move_local(camera, offset);
   }
@@ -228,12 +229,13 @@ void qw_motion(int const x, int const y, int const delta_x,
 
 void qw_wheel(float const delta_x, float const delta_y) {
   camera = camera_move_local(
-      camera, vec3_mul(qw_camera_forward, delta_y * sense_wheel));
+      camera, vec3_mul(camera_forward, -delta_y * sense_wheel));
 }
 
 void qw_init(void) {
   (void) sense_motion;
   (void) sense_wheel;
+  (void) sense_movement;
 
   for (int i = 0; i < QW_KEY_MAP_SIZE; i++) qw_key_map[i] = i;
 
@@ -283,6 +285,24 @@ void qw_size(int const width, int const height) {
 }
 
 int qw_frame(int64_t const time_elapsed) {
+  if (is_down[QW_KEY_A])
+    camera = camera_move_local(
+        camera,
+        vec3_mul(camera_right, -sense_movement * time_elapsed));
+  if (is_down[QW_KEY_D])
+    camera = camera_move_local(
+        camera,
+        vec3_mul(camera_right, sense_movement * time_elapsed));
+
+  if (is_down[QW_KEY_W])
+    camera = camera_move_local(
+        camera,
+        vec3_mul(camera_forward, -sense_movement * time_elapsed));
+  if (is_down[QW_KEY_S])
+    camera = camera_move_local(
+        camera,
+        vec3_mul(camera_forward, sense_movement * time_elapsed));
+
   mat4_t const view = mat4_perspective(M_PI * .1f, aspect_ratio, .1f,
                                        400.f);
 
