@@ -54,13 +54,25 @@ camera_t camera_rotate(camera_t const camera, quat_t const rotation) {
   return result;
 }
 
-camera_t camera_normal(camera_t const camera, vec3_t const up) {
+camera_t camera_normal(camera_t const camera, vec3_t const up,
+                       vec_t const factor) {
+  vec3_t const right = vec3_normal(
+      vec3_rotate(camera_right, camera.rotation));
+  vec3_t const forward = vec3_cross(up, right);
+  vec_t const  angle   = vec_asin(vec3_dot(up, right));
+
+  return camera_rotate(camera,
+                       quat_rotation(angle * factor, forward));
+}
+
+camera_t camera_normal_local(camera_t const camera, vec3_t const up,
+                             vec_t const factor) {
   vec3_t const right = vec3_normal(
       vec3_rotate(camera_right, camera.rotation));
   vec_t const angle = vec_asin(vec3_dot(up, right));
 
-  return camera_rotate_local(camera,
-                             quat_rotation(-angle, camera_forward));
+  return camera_rotate_local(
+      camera, quat_rotation(-angle * factor, camera_forward));
 }
 
 mat4_t camera_to_mat4(camera_t const camera) {

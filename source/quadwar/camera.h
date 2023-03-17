@@ -26,7 +26,10 @@ camera_t camera_rotate(camera_t camera, quat_t rotation);
 
 camera_t camera_rotate_local(camera_t camera, quat_t rotation);
 
-camera_t camera_normal(camera_t camera, vec3_t up);
+camera_t camera_normal(camera_t camera, vec3_t up, vec_t factor);
+
+camera_t camera_normal_local(camera_t camera, vec3_t up,
+                             vec_t factor);
 
 mat4_t camera_to_mat4(camera_t camera);
 

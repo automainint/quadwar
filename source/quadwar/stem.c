@@ -59,6 +59,11 @@ static vec3_t color      = { { 1.f, 1.f, 1.f } };
 
 static int8_t is_down[QW_KEY_MAP_SIZE];
 
+static vec3_t const world_up             = { { 0.f, 0.f, 1.f } };
+static int          camera_mode          = 1;
+static int          camera_normalization = 0;
+static vec_t        camera_normal_factor = .005f;
+
 static camera_t camera;
 
 static void shaders_build(int rebuild) {
@@ -199,6 +204,15 @@ void qw_down(int const key) {
       u_color  = qw_glGetUniformLocation(shader_program, "u_color");
       break;
 
+    case QW_KEY_R:
+      camera = camera_normal_local(camera, world_up, 1.f);
+      break;
+
+    case QW_KEY_1: camera_mode = 0; break;
+    case QW_KEY_2: camera_mode = 1; break;
+    case QW_KEY_3: camera_mode = 2; break;
+    case QW_KEY_N: camera_normalization ^= 1; break;
+
     default:;
   }
 }
@@ -210,21 +224,56 @@ void qw_up(int const key) {
 void qw_motion(int const x, int const y, int const delta_x,
                int const delta_y) {
   if (is_down[QW_KEY_BUTTON_LEFT]) {
-    quat_t const rotation = quat_mul(
-        quat_rotation(-delta_x * sense_motion, camera_up),
-        quat_rotation(-delta_y * sense_motion, camera_right));
+    switch (camera_mode) {
+      case 0:
+        /*  Rotation relative to camera up axis.
+         */
 
-    camera = camera_normal(camera_rotate_local(camera, rotation),
-                           vec3(0.f, 0.f, 1.f));
+        camera = camera_rotate_local(
+            camera, quat_mul(quat_rotation(-delta_x * sense_motion,
+                                           camera_up),
+                             quat_rotation(-delta_y * sense_motion,
+                                           camera_right)));
+        break;
+
+      case 1:
+        /*  Rotation relative to camera up axis with normalization to
+         *  world up axis.
+         */
+
+        camera = camera_normal(
+            camera_rotate_local(
+                camera,
+                quat_mul(
+                    quat_rotation(-delta_x * sense_motion, camera_up),
+                    quat_rotation(-delta_y * sense_motion,
+                                  camera_right))),
+            world_up, 1.f);
+        break;
+
+      case 2:
+        /*  Rotation relative to world up axis, aka Euler angles.
+         */
+
+        if (delta_x != 0)
+          camera = camera_rotate(
+              camera,
+              quat_rotation(-delta_x * sense_motion, world_up));
+        if (delta_y != 0)
+          camera = camera_rotate_local(
+              camera,
+              quat_rotation(-delta_y * sense_motion, camera_right));
+        break;
+
+      default:;
+    }
   }
 
-  if (is_down[QW_KEY_BUTTON_RIGHT]) {
-    vec3_t const offset = vec3_add(
-        vec3_mul(camera_right, delta_x * sense_motion),
-        vec3_mul(camera_up, -delta_y * sense_motion));
-
-    camera = camera_move_local(camera, offset);
-  }
+  if (is_down[QW_KEY_BUTTON_RIGHT])
+    camera = camera_move_local(
+        camera,
+        vec3_add(vec3_mul(camera_right, delta_x * sense_motion),
+                 vec3_mul(camera_up, -delta_y * sense_motion)));
 }
 
 void qw_wheel(float const delta_x, float const delta_y) {
@@ -302,6 +351,10 @@ int qw_frame(int64_t const time_elapsed) {
     camera = camera_move_local(
         camera,
         vec3_mul(camera_forward, sense_movement * time_elapsed));
+
+  if (camera_normalization)
+    camera = camera_normal_local(camera, world_up,
+                                 camera_normal_factor * time_elapsed);
 
   mat4_t const view = mat4_perspective(M_PI * .1f, aspect_ratio, .1f,
                                        400.f);
