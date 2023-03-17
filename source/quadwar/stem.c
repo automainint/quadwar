@@ -49,7 +49,7 @@ static GLint u_color;
 static vec_t aspect_ratio = 1.f;
 
 static vec_t const sense_motion = .004f;
-static vec_t const sense_wheel  = .07f;
+static vec_t const sense_wheel  = .13f;
 
 static vec_t time = 0.f;
 
@@ -211,37 +211,30 @@ void qw_motion(int const x, int const y, int const delta_x,
   if (is_down[QW_KEY_BUTTON_LEFT]) {
     quat_t const rotation = quat_mul(
         quat_rotation(-delta_x * sense_motion, qw_camera_up),
-        quat_rotation(delta_y * sense_motion, qw_camera_right));
+        quat_rotation(-delta_y * sense_motion, qw_camera_right));
 
-    camera = camera_rotate_local(camera, rotation);
-
-    vec3_t const right = vec3_normal(
-        vec3_rotate(qw_camera_right, camera.rotation));
-    vec_t const angle = vec_asin(vec3_dot(qw_camera_up, right));
-
-    camera = camera_rotate_local(
-        camera, quat_rotation(angle, qw_camera_forward));
+    camera = camera_normal(camera_rotate_local(camera, rotation),
+                           vec3(0.f, 0.f, 1.f));
   }
 
   if (is_down[QW_KEY_BUTTON_RIGHT]) {
-    vec3_t const offset = vec3_rotate(
-        vec3_add(vec3_mul(qw_camera_right, -delta_x * sense_motion),
-                 vec3_mul(qw_camera_up, -delta_y * sense_motion)),
-        camera.rotation);
+    vec3_t const offset = vec3_add(
+        vec3_mul(qw_camera_right, delta_x * sense_motion),
+        vec3_mul(qw_camera_up, -delta_y * sense_motion));
 
-    camera = camera_move(camera, offset);
+    camera = camera_move_local(camera, offset);
   }
 }
 
 void qw_wheel(float const delta_x, float const delta_y) {
-  vec3_t const offset = vec3_rotate(
-      vec3_mul(qw_camera_forward, delta_y * sense_wheel),
-      camera.rotation);
-
-  camera = camera_move(camera, offset);
+  camera = camera_move_local(
+      camera, vec3_mul(qw_camera_forward, delta_y * sense_wheel));
 }
 
 void qw_init(void) {
+  (void) sense_motion;
+  (void) sense_wheel;
+
   for (int i = 0; i < QW_KEY_MAP_SIZE; i++) qw_key_map[i] = i;
 
   back_color = lch_to_rgb(vec3(45.f, 7.f, .75f));
@@ -252,12 +245,12 @@ void qw_init(void) {
   qw_glGenBuffers(1, &vertex_buffer);
   qw_glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
 
-  vec_t const data[] = { -.5f, 0.f, -.5f, //
-                         -.5f, 0.f, .5f,  //
-                         .5f,  0.f, .5f,  //
-                         -.5f, 0.f, -.5f, //
-                         .5f,  0.f, .5f,  //
-                         .5f,  0.f, -.5f };
+  vec_t const data[] = { -.5f, -.5f, 0.f, //
+                         -.5f, .5f,  0.f, //
+                         .5f,  .5f,  0.f, //
+                         -.5f, -.5f, 0.f, //
+                         .5f,  .5f,  0.f, //
+                         .5f,  -.5f, 0.f };
 
   qw_glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STATIC_DRAW);
 
@@ -274,7 +267,7 @@ void qw_init(void) {
   u_object = qw_glGetUniformLocation(shader_program, "u_object");
   u_color  = qw_glGetUniformLocation(shader_program, "u_color");
 
-  camera = camera_look_at(vec3(-1.f, 2.f, -1.f), vec3(0.f, 0.f, 0.f));
+  camera = camera_look_at(vec3(-1.f, .5f, 2.f), vec3(0.f, 0.f, 0.f));
 }
 
 void qw_cleanup(void) {

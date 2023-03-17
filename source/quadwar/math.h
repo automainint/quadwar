@@ -15,11 +15,11 @@ extern "C" {
 #  define M_PI 3.14159265359
 #endif
 
-#define QW_EPSILON .001f
+#define M_EPSILON .0001
 
-#define QW_REF_X 95.047f
-#define QW_REF_Y 100.0f
-#define QW_REF_Z 108.883f
+#define M_COLOR_REF_X 95.047f
+#define M_COLOR_REF_Y 100.0f
+#define M_COLOR_REF_Z 108.883f
 
 typedef float vec_t;
 
@@ -59,9 +59,76 @@ static vec4_t vec4(vec_t const x, vec_t const y, vec_t const z,
   return v;
 }
 
+static mat3_t mat3(                                    //
+    vec_t const _00, vec_t const _01, vec_t const _02, //
+    vec_t const _10, vec_t const _11, vec_t const _12, //
+    vec_t const _20, vec_t const _21, vec_t const _22) {
+  mat3_t const m = { {
+      _00, _01, _02, //
+      _10, _11, _12, //
+      _20, _21, _22  //
+  } };
+  return m;
+}
+
+static mat4_t mat4(vec_t const _00, vec_t const _01, vec_t const _02,
+                   vec_t const _03, vec_t const _10, vec_t const _11,
+                   vec_t const _12, vec_t const _13, vec_t const _20,
+                   vec_t const _21, vec_t const _22, vec_t const _23,
+                   vec_t const _30, vec_t const _31, vec_t const _32,
+                   vec_t const _33) {
+  mat4_t const m = { {
+      _00, _01, _02, _03, //
+      _10, _11, _12, _13, //
+      _20, _21, _22, _23, //
+      _30, _31, _32, _33  //
+  } };
+  return m;
+}
+
+static mat3_t vec3_to_mat3(vec3_t const a, vec3_t const b,
+                           vec3_t const c) {
+  return mat3(a.v[0], a.v[1], a.v[2], //
+              b.v[0], b.v[1], b.v[2], //
+              c.v[0], c.v[1], c.v[2]);
+}
+
+static mat4_t vec4_to_mat4(vec4_t const a, vec4_t const b,
+                           vec4_t const c, vec4_t const d) {
+  return mat4(a.v[0], a.v[1], a.v[2], a.v[3], //
+              b.v[0], b.v[1], b.v[2], b.v[3], //
+              c.v[0], c.v[1], c.v[2], c.v[3], //
+              d.v[0], d.v[1], d.v[2], d.v[3]);
+}
+
+static mat4_t mat3_to_mat4(mat3_t const a) {
+  return mat4(a.v[0], a.v[1], a.v[2], 0.f, //
+              a.v[3], a.v[4], a.v[5], 0.f, //
+              a.v[6], a.v[7], a.v[8], 0.f, //
+              0.f, 0.f, 0.f, 1.f);
+}
+
+static mat3_t mat4_to_mat3(mat4_t const a) {
+  return mat3(a.v[0], a.v[1], a.v[2], //
+              a.v[4], a.v[5], a.v[6], //
+              a.v[8], a.v[9], a.v[10]);
+}
+
 static quat_t quat(vec_t const x, vec_t const y, vec_t const z,
                    vec_t const w) {
   return vec4(x, y, z, w);
+}
+
+static quat_t vec3_to_quat(vec3_t const v, vec_t const w) {
+  return quat(v.v[0], v.v[1], v.v[2], w);
+}
+
+static vec3_t vec4_to_vec3(vec4_t const a) {
+  return vec3(a.v[0], a.v[1], a.v[2]);
+}
+
+static vec3_t quat_to_vec3(quat_t const a) {
+  return vec4_to_vec3(a);
 }
 
 static vec_t vec_abs(vec_t const x) {
@@ -72,8 +139,16 @@ static vec_t vec_max(vec_t const x, vec_t const y) {
   return fmax(x, y);
 }
 
+static vec_t vec_max3(vec_t const x, vec_t const y, vec_t const z) {
+  return fmax(fmax(x, y), z);
+}
+
 static vec_t vec_sqrt(vec_t const x) {
   return sqrtf(x);
+}
+
+static vec_t vec_pow(vec_t const x, vec_t const y) {
+  return powf(x, y);
 }
 
 static vec_t vec_sin(vec_t const x) {
@@ -108,6 +183,12 @@ static vec3_t vec3_add(vec3_t const a, vec3_t const b) {
   return vec3(a.v[0] + b.v[0], a.v[1] + b.v[1], a.v[2] + b.v[2]);
 }
 
+static vec3_t vec3_add3(vec3_t const a, vec3_t const b,
+                        vec3_t const c) {
+  return vec3(a.v[0] + b.v[0] + c.v[0], a.v[1] + b.v[1] + c.v[1],
+              a.v[2] + b.v[2] + c.v[2]);
+}
+
 static vec3_t vec3_sub(vec3_t const a, vec3_t const b) {
   return vec3(a.v[0] - b.v[0], a.v[1] - b.v[1], a.v[2] - b.v[2]);
 }
@@ -132,9 +213,9 @@ static vec3_t vec3_normal(vec3_t const v) {
   vec_t const z = v.v[2];
 
   vec_t const length_squared = x * x + y * y + z * z;
-  assert(length_squared >= QW_EPSILON);
+  assert(length_squared >= M_EPSILON);
 
-  if (length_squared < QW_EPSILON) {
+  if (length_squared < M_EPSILON) {
     vec3_t const n = { { 0.f, 0.f, 1.f } };
     return n;
   }
@@ -152,9 +233,9 @@ static vec4_t vec4_normal(vec4_t const v) {
   vec_t const w = v.v[3];
 
   vec_t const length_squared = x * x + y * y + z * z + w * w;
-  assert(length_squared >= QW_EPSILON);
+  assert(length_squared >= M_EPSILON);
 
-  if (length_squared < QW_EPSILON) {
+  if (length_squared < M_EPSILON) {
     vec4_t const n = { { 0.f, 0.f, 0.f, 1.f } };
     return n;
   }
@@ -206,30 +287,27 @@ static quat_t quat_rotation(vec_t const angle, vec3_t const axis) {
   return q;
 }
 
-static mat4_t quat_to_mat4(quat_t const q) {
-  vec_t const i = q.v[0];
-  vec_t const j = q.v[1];
-  vec_t const k = q.v[2];
-  vec_t const r = q.v[3];
+static mat3_t mat3_transpose(mat3_t const m) {
+  return mat3(m.v[0], m.v[3], m.v[6], //
+              m.v[1], m.v[4], m.v[7], //
+              m.v[2], m.v[5], m.v[8]);
+}
 
-  mat4_t const m = { { 1.f - 2.f * (j * j + k * k), //
-                       2.f * (i * j - k * r),       //
-                       2.f * (i * k + j * r),       //
-                       0.f,                         //
-                       2.f * (i * j + k * r),       //
-                       1.f - 2.f * (i * i + k * k), //
-                       2.f * (j * k - i * r),       //
-                       0.f,                         //
-                       2.f * (i * k - j * r),       //
-                       2.f * (j * k + i * r),       //
-                       1.f - 2.f * (i * i + j * j), //
-                       0.f,                         //
-                       0.f,                         //
-                       0.f,                         //
-                       0.f,                         //
-                       1.f } };
+static mat4_t mat4_transpose(mat4_t const m) {
+  return mat4(m.v[0], m.v[4], m.v[8], m.v[12],  //
+              m.v[1], m.v[5], m.v[9], m.v[13],  //
+              m.v[2], m.v[6], m.v[10], m.v[14], //
+              m.v[3], m.v[7], m.v[11], m.v[15]);
+}
 
-  return m;
+static mat3_t mat3_look_at(vec3_t const direction, vec3_t const up) {
+  vec3_t const f = vec3_normal(vec3_neg(direction));
+  vec3_t const s = vec3_normal(vec3_cross(f, up));
+  vec3_t const u = vec3_cross(s, f);
+
+  return mat3(s.v[0], u.v[0], f.v[0], //
+              s.v[1], u.v[1], f.v[1], //
+              s.v[2], u.v[2], f.v[2]);
 }
 
 static vec3_t vec3_rotate(vec3_t const v, quat_t const rotation) {
@@ -241,48 +319,73 @@ static vec3_t vec3_rotate(vec3_t const v, quat_t const rotation) {
                   vec3_mul(vec3_cross(u, v), 2.f * s));
 }
 
-static quat_t mat3_to_quat(mat3_t const m) {
-  vec_t four_x_squared_minus_1 = m.v[0] - m.v[4] - m.v[8];
-  vec_t four_y_squared_minus_1 = m.v[4] - m.v[0] - m.v[8];
-  vec_t four_z_squared_minus_1 = m.v[8] - m.v[0] - m.v[4];
-  vec_t four_w_squared_minus_1 = m.v[0] + m.v[4] + m.v[8];
+static mat3_t quat_to_mat3(quat_t const q) {
+  vec_t const xx = q.v[0] * q.v[0];
+  vec_t const yy = q.v[1] * q.v[1];
+  vec_t const zz = q.v[2] * q.v[2];
+  vec_t const xz = q.v[0] * q.v[2];
+  vec_t const xy = q.v[0] * q.v[1];
+  vec_t const yz = q.v[1] * q.v[2];
+  vec_t const wx = q.v[3] * q.v[0];
+  vec_t const wy = q.v[3] * q.v[1];
+  vec_t const wz = q.v[3] * q.v[2];
 
-  int   biggest_index                = 0;
-  vec_t four_biggest_squared_minus_1 = four_w_squared_minus_1;
+  return mat3(1.f - 2.f * (yy + zz), //
+              2.f * (xy + wz),       //
+              2.f * (xz - wy),       //
+              2.f * (xy - wz),       //
+              1.f - 2.f * (xx + zz), //
+              2.f * (yz + wx),       //
+              2.f * (xz + wy),       //
+              2.f * (yz - wx),       //
+              1.f - 2.f * (xx + yy));
+}
 
-  if (four_x_squared_minus_1 > four_biggest_squared_minus_1) {
-    four_biggest_squared_minus_1 = four_x_squared_minus_1;
-    biggest_index                = 1;
+static quat_t mat3_to_quat(mat3_t m) {
+  vec_t a = m.v[0] - m.v[4] - m.v[8];
+  vec_t b = m.v[4] - m.v[0] - m.v[8];
+  vec_t c = m.v[8] - m.v[0] - m.v[4];
+  vec_t d = m.v[0] + m.v[4] + m.v[8];
+
+  int   n = 0;
+  vec_t h = d;
+  if (a > h) {
+    h = a;
+    n = 1;
+  }
+  if (b > h) {
+    h = b;
+    n = 2;
+  }
+  if (c > h) {
+    h = c;
+    n = 3;
   }
 
-  if (four_y_squared_minus_1 > four_biggest_squared_minus_1) {
-    four_biggest_squared_minus_1 = four_y_squared_minus_1;
-    biggest_index                = 2;
-  }
+  vec_t s = vec_sqrt(h + 1.f) * .5f;
+  vec_t k = .25f / s;
 
-  if (four_z_squared_minus_1 > four_biggest_squared_minus_1) {
-    four_biggest_squared_minus_1 = four_z_squared_minus_1;
-    biggest_index                = 3;
-  }
-
-  vec_t const biggest_val = vec_sqrt(four_biggest_squared_minus_1 +
-                                     1.f) *
-                            .5f;
-  vec_t const mult = .25f / biggest_val;
-
-  switch (biggest_index) {
+  switch (n) {
     case 0:
-      return quat((m.v[5] - m.v[7]) * mult, (m.v[6] - m.v[2]) * mult,
-                  (m.v[1] - m.v[3]) * mult, biggest_val);
+      return quat((m.v[5] - m.v[7]) * k, //
+                  (m.v[6] - m.v[2]) * k, //
+                  (m.v[1] - m.v[3]) * k, //
+                  s);
     case 1:
-      return quat(biggest_val, (m.v[1] + m.v[3]) * mult,
-                  (m.v[6] + m.v[2]) * mult, (m.v[5] - m.v[7]) * mult);
+      return quat(s,                     //
+                  (m.v[1] + m.v[3]) * k, //
+                  (m.v[6] + m.v[2]) * k, //
+                  (m.v[5] - m.v[7]) * k);
     case 2:
-      return quat((m.v[1] + m.v[3]) * mult, biggest_val,
-                  (m.v[5] + m.v[7]) * mult, (m.v[6] - m.v[2]) * mult);
+      return quat((m.v[1] + m.v[3]) * k, //
+                  s,                     //
+                  (m.v[5] + m.v[7]) * k, //
+                  (m.v[6] - m.v[2]) * k);
     case 3:
-      return quat((m.v[6] + m.v[2]) * mult, (m.v[5] + m.v[7]) * mult,
-                  biggest_val, (m.v[1] - m.v[3]) * mult);
+      return quat((m.v[6] + m.v[2]) * k, //
+                  (m.v[5] + m.v[7]) * k, //
+                  s,                     //
+                  (m.v[1] - m.v[3]) * k);
     default:;
   }
 
@@ -291,18 +394,26 @@ static quat_t mat3_to_quat(mat3_t const m) {
 }
 
 static quat_t quat_look_at(vec3_t const direction, vec3_t const up) {
-  vec3_t const m2    = vec3_neg(direction);
-  vec3_t const right = vec3_cross(up, m2);
-  vec3_t const m0    = vec3_mul(
-         right,
-         1.f / vec_sqrt(vec_max(QW_EPSILON, vec3_dot(right, right))));
-  vec3_t const m1 = vec3_cross(m0, m2);
-  mat3_t const m  = { {
-      m0.v[0], m0.v[1], m0.v[2], //
-      m1.v[0], m1.v[1], m1.v[2], //
-      m2.v[0], m2.v[1], m2.v[2]  //
-  } };
-  return mat3_to_quat(m);
+  vec3_t const z     = vec3_normal(vec3_neg(direction));
+  vec3_t const right = vec3_cross(up, z);
+  vec3_t const x     = vec3_mul(
+          right,
+          1.f / vec_sqrt(vec_max(M_EPSILON, vec3_dot(right, right))));
+  vec3_t const y = vec3_cross(z, x);
+
+  return mat3_to_quat(vec3_to_mat3(x, y, z));
+}
+
+static mat3_t mat3_mul(mat3_t const left, mat3_t const right) {
+  mat3_t m;
+  memset(&m, 0, sizeof m);
+
+  for (int j = 0; j < 3; j++)
+    for (int i = 0; i < 3; i++)
+      for (int k = 0; k < 3; k++)
+        m.v[j * 3 + i] += left.v[k * 3 + i] * right.v[j * 3 + k];
+
+  return m;
 }
 
 static mat4_t mat4_mul(mat4_t const left, mat4_t const right) {
@@ -325,7 +436,7 @@ static mat4_t mat4_move(vec3_t const offset) {
   mat4_t const m = { { 1.f, 0.f, 0.f, 0.f, //
                        0.f, 1.f, 0.f, 0.f, //
                        0.f, 0.f, 1.f, 0.f, //
-                       -x, -y, -z, 1.f } };
+                       x, y, z, 1.f } };
 
   return m;
 }
@@ -386,17 +497,17 @@ static vec3_t rgb_to_xyz(vec3_t const rgb) {
   vec_t blue  = rgb.v[2];
 
   if (red > 0.04045f)
-    red = powf(((red + 0.055f) / 1.055f), 2.4f);
+    red = vec_pow(((red + 0.055f) / 1.055f), 2.4f);
   else
     red = red / 12.92f;
 
-  if (green > 0.04045)
-    green = powf(((green + 0.055f) / 1.055f), 2.4f);
+  if (green > 0.04045f)
+    green = vec_pow(((green + 0.055f) / 1.055f), 2.4f);
   else
     green = green / 12.92f;
 
   if (blue > 0.04045f)
-    blue = powf(((blue + 0.055f) / 1.055f), 2.4f);
+    blue = vec_pow(((blue + 0.055f) / 1.055f), 2.4f);
   else
     blue = blue / 12.92f;
 
@@ -410,22 +521,22 @@ static vec3_t rgb_to_xyz(vec3_t const rgb) {
 }
 
 static vec3_t xyz_to_lab(vec3_t const xyz) {
-  vec_t x = (xyz.v[0] / QW_REF_X);
-  vec_t y = (xyz.v[1] / QW_REF_Y);
-  vec_t z = (xyz.v[2] / QW_REF_Z);
+  vec_t x = (xyz.v[0] / M_COLOR_REF_X);
+  vec_t y = (xyz.v[1] / M_COLOR_REF_Y);
+  vec_t z = (xyz.v[2] / M_COLOR_REF_Z);
 
   if (x > 0.008856f)
-    x = powf(x, (1.f / 3.f));
+    x = vec_pow(x, (1.f / 3.f));
   else
     x = (7.787f * x) + (16.f / 116.f);
 
   if (y > 0.008856f)
-    y = powf(y, (1.f / 3.f));
+    y = vec_pow(y, (1.f / 3.f));
   else
     y = (7.787f * y) + (16.f / 116.f);
 
   if (z > 0.008856f)
-    z = powf(z, (1.f / 3.f));
+    z = vec_pow(z, (1.f / 3.f));
   else
     z = (7.787f * z) + (16.f / 116.f);
 
@@ -445,22 +556,23 @@ static vec3_t lab_to_xyz(vec3_t const lab) {
   vec_t x = (a / 500.f) + y;
   vec_t z = y - (b / 200.f);
 
-  if (powf(y, 3.f) > 0.008856)
-    y = powf(y, 3.f);
+  if (vec_pow(y, 3.f) > 0.008856)
+    y = vec_pow(y, 3.f);
   else
     y = (y - (16.f / 116.f)) / 7.787f;
 
-  if (powf(x, 3.f) > 0.008856f)
-    x = powf(x, 3.f);
+  if (vec_pow(x, 3.f) > 0.008856f)
+    x = vec_pow(x, 3.f);
   else
     x = (x - (16.f / 116.f)) / 7.787f;
 
-  if (powf(z, 3.f) > 0.008856f)
-    z = powf(z, 3.f);
+  if (vec_pow(z, 3.f) > 0.008856f)
+    z = vec_pow(z, 3.f);
   else
     z = (z - (16.f / 116.f)) / 7.787f;
 
-  return vec3(QW_REF_X * x, QW_REF_Y * y, QW_REF_Z * z);
+  return vec3(M_COLOR_REF_X * x, M_COLOR_REF_Y * y,
+              M_COLOR_REF_Z * z);
 }
 
 static vec3_t xyz_to_rgb(vec3_t const xyz) {
@@ -473,17 +585,17 @@ static vec3_t xyz_to_rgb(vec3_t const xyz) {
   vec_t blue  = x * 0.0557f + y * (-0.2040f) + z * 1.0570f;
 
   if (red > 0.0031308f)
-    red = 1.055f * powf(red, (1.0f / 2.4)) - 0.055f;
+    red = 1.055f * vec_pow(red, (1.0f / 2.4)) - 0.055f;
   else
     red = 12.92f * red;
 
   if (green > 0.0031308f)
-    green = 1.055f * powf(green, (1.0f / 2.4)) - 0.055f;
+    green = 1.055f * vec_pow(green, (1.0f / 2.4)) - 0.055f;
   else
     green = 12.92f * green;
 
   if (blue > 0.0031308f)
-    blue = 1.055f * powf(blue, (1.0f / 2.4)) - 0.055f;
+    blue = 1.055f * vec_pow(blue, (1.0f / 2.4)) - 0.055f;
   else
     blue = 12.92f * blue;
 

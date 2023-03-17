@@ -13,16 +13,20 @@ typedef struct {
 } camera_t;
 
 static const vec3_t qw_camera_forward = { { 0.f, 0.f, -1.f } };
-static const vec3_t qw_camera_right   = { { -1.f, 0.f, 0.f } };
+static const vec3_t qw_camera_right   = { { 1.f, 0.f, 0.f } };
 static const vec3_t qw_camera_up      = { { 0.f, 1.f, 0.f } };
 
 camera_t camera_look_at(vec3_t eye, vec3_t target);
 
 camera_t camera_move(camera_t camera, vec3_t offset);
 
-camera_t camera_rotate_local(camera_t camera, quat_t rotation);
+camera_t camera_move_local(camera_t camera, vec3_t offset);
 
 camera_t camera_rotate(camera_t camera, quat_t rotation);
+
+camera_t camera_rotate_local(camera_t camera, quat_t rotation);
+
+camera_t camera_normal(camera_t camera, vec3_t up);
 
 mat4_t camera_to_mat4(camera_t camera);
 
