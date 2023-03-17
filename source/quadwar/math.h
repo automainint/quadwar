@@ -135,12 +135,17 @@ static vec_t vec_abs(vec_t const x) {
   return fabs(x);
 }
 
+static vec_t vec_min(vec_t const x, vec_t const y) {
+  return fmin(x, y);
+}
+
 static vec_t vec_max(vec_t const x, vec_t const y) {
   return fmax(x, y);
 }
 
-static vec_t vec_max3(vec_t const x, vec_t const y, vec_t const z) {
-  return fmax(fmax(x, y), z);
+static vec_t vec_clamp(vec_t const x, vec_t const x0,
+                       vec_t const x1) {
+  return fmax(x0, fmin(x, x1));
 }
 
 static vec_t vec_sqrt(vec_t const x) {
@@ -314,9 +319,9 @@ static vec3_t vec3_rotate(vec3_t const v, quat_t const rotation) {
   vec3_t const u = vec3(rotation.v[0], rotation.v[1], rotation.v[2]);
   vec_t const  s = rotation.v[3];
 
-  return vec3_add(vec3_add(vec3_mul(u, 2.f * vec3_dot(u, v)),
-                           vec3_mul(v, s * s - vec3_dot(u, u))),
-                  vec3_mul(vec3_cross(u, v), 2.f * s));
+  return vec3_add3(vec3_mul(u, 2.f * vec3_dot(u, v)),
+                   vec3_mul(v, s * s - vec3_dot(u, u)),
+                   vec3_mul(vec3_cross(u, v), 2.f * s));
 }
 
 static mat3_t quat_to_mat3(quat_t const q) {

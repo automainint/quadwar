@@ -61,8 +61,9 @@ camera_t camera_normal(camera_t const camera, vec3_t const up,
   vec3_t const forward = vec3_cross(up, right);
   vec_t const  angle   = vec_asin(vec3_dot(up, right));
 
-  return camera_rotate(camera,
-                       quat_rotation(angle * factor, forward));
+  return camera_rotate(
+      camera,
+      quat_rotation(angle * vec_clamp(factor, 0.f, 1.f), forward));
 }
 
 camera_t camera_normal_local(camera_t const camera, vec3_t const up,
@@ -72,7 +73,8 @@ camera_t camera_normal_local(camera_t const camera, vec3_t const up,
   vec_t const angle = vec_asin(vec3_dot(up, right));
 
   return camera_rotate_local(
-      camera, quat_rotation(-angle * factor, camera_forward));
+      camera, quat_rotation(-angle * vec_clamp(factor, 0.f, 1.f),
+                            camera_forward));
 }
 
 mat4_t camera_to_mat4(camera_t const camera) {
