@@ -112,7 +112,7 @@ enum {
   MAP_DATA_OFFSET = MAP_SIZE_X * MAP_SIZE_Y * 18
 };
 
-#define MAP_SCALE_Z 0.001f
+#define MAP_SCALE_Z 0.005f
 #define MAP_CELL_SIZE 2.f
 
 #define OFFSET(x) ((void *) (sizeof(vec_t) * (x)))
@@ -418,12 +418,15 @@ void qw_init(void) {
       vertices[n + 15] = (-MAP_SIZE_X * .5f + i) * MAP_CELL_SIZE;
       vertices[n + 16] = (-MAP_SIZE_Y * .5f + j + 1) * MAP_CELL_SIZE;
 
+      /*
       vec3_t const r0 = vec3(MAP_CELL_SIZE, 0.f,
                              vertices[n + 5] - vertices[n + 2]);
       vec3_t const r1 = vec3(0.f, MAP_CELL_SIZE,
                              vertices[n + 17] - vertices[n + 2]);
+      */
 
-      vec3_t const r = vec3_normal(vec3_cross(r0, r1));
+      vec3_t const r = vec3(0.f, 0.f,
+                            1.f); // vec3_normal(vec3_cross(r0, r1));
 
       normals[n]     = r.v[0];
       normals[n + 1] = r.v[1];

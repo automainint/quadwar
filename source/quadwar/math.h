@@ -508,6 +508,8 @@ static vec3_t rgb_to_xyz(vec3_t const rgb) {
   vec_t green = rgb.v[1];
   vec_t blue  = rgb.v[2];
 
+  //  Gamma-correction
+  /*
   if (red > 0.04045f)
     red = vec_pow(((red + 0.055f) / 1.055f), 2.4f);
   else
@@ -522,6 +524,7 @@ static vec3_t rgb_to_xyz(vec3_t const rgb) {
     blue = vec_pow(((blue + 0.055f) / 1.055f), 2.4f);
   else
     blue = blue / 12.92f;
+  */
 
   red   = red * 100.f;
   green = green * 100.f;
@@ -596,6 +599,8 @@ static vec3_t xyz_to_rgb(vec3_t const xyz) {
   vec_t green = x * (-0.9689f) + y * 1.8758f + z * 0.0415f;
   vec_t blue  = x * 0.0557f + y * (-0.2040f) + z * 1.0570f;
 
+  //  Gamma-correction
+  /*
   if (red > 0.0031308f)
     red = 1.055f * vec_pow(red, (1.0f / 2.4)) - 0.055f;
   else
@@ -610,6 +615,7 @@ static vec3_t xyz_to_rgb(vec3_t const xyz) {
     blue = 1.055f * vec_pow(blue, (1.0f / 2.4)) - 0.055f;
   else
     blue = 12.92f * blue;
+  */
 
   return vec3_clamp(vec3(red, green, blue), vec3(0.f, 0.f, 0.f),
                     vec3(1.f, 1.f, 1.f));
