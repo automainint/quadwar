@@ -238,6 +238,34 @@ static vec3_t vec3_normal(vec3_t const v) {
   return n;
 }
 
+static vec4_t vec4_neg(vec4_t const a) {
+  return vec4(-a.v[0], -a.v[1], -a.v[2], -a.v[3]);
+}
+
+static vec4_t vec4_add(vec4_t const a, vec4_t const b) {
+  return vec4(a.v[0] + b.v[0], a.v[1] + b.v[1], a.v[2] + b.v[2],
+              a.v[3] + b.v[3]);
+}
+
+static vec4_t vec4_mul(vec4_t const v, vec_t const x) {
+  return vec4(v.v[0] * x, v.v[1] * x, v.v[2] * x, v.v[3] * x);
+}
+
+static vec4_t vec4_div(vec4_t const v, vec_t const x) {
+  assert(x < M_EPSILON);
+  assert(x > -M_EPSILON);
+
+  if (x >= -M_EPSILON || x < M_EPSILON)
+    return vec4(0.f, 0.f, 0.f, 0.f);
+
+  return vec4(v.v[0] / x, v.v[1] / x, v.v[2] / x, v.v[3] / x);
+}
+
+static vec_t vec4_dot(vec4_t const a, vec4_t const b) {
+  return a.v[0] * b.v[0] + a.v[1] * b.v[1] + a.v[2] * b.v[2] +
+         a.v[3] * b.v[3];
+}
+
 static vec4_t vec4_normal(vec4_t const v) {
   vec_t const x = v.v[0];
   vec_t const y = v.v[1];
@@ -501,6 +529,61 @@ static mat4_t mat4_perspective(vec_t const fovy,
   vec_t const xmax = ymax * aspect_ratio_;
 
   return mat4_frustum(-xmax, xmax, -ymax, ymax, znear, zfar);
+}
+
+static vec_t vec_lerp(vec_t const x0, vec_t const x1, vec_t const t) {
+  assert(t >= 0.f);
+  assert(t <= 1.f);
+
+  if (t <= 0.f)
+    return x0;
+  if (t >= 1.f)
+    return x1;
+
+  return x0 + (x1 - x0) * t;
+}
+
+static vec3_t vec3_lerp(vec3_t const x0, vec3_t const x1,
+                        vec_t const t) {
+  return vec3(vec_lerp(x0.v[0], x1.v[0], t),
+              vec_lerp(x0.v[1], x1.v[1], t),
+              vec_lerp(x0.v[2], x1.v[2], t));
+}
+
+static vec4_t vec4_lerp(vec4_t const x0, vec4_t const x1,
+                        vec_t const t) {
+  return vec4(
+      vec_lerp(x0.v[0], x1.v[0], t), vec_lerp(x0.v[1], x1.v[1], t),
+      vec_lerp(x0.v[2], x1.v[2], t), vec_lerp(x0.v[3], x1.v[3], t));
+}
+
+static quat_t quat_slerp(quat_t const q0, quat_t const q1,
+                         vec_t const t) {
+  assert(t >= 0.f);
+  assert(t <= 1.f);
+
+  if (t <= 0.f)
+    return q0;
+  if (t >= 1.f)
+    return q1;
+
+  quat_t q = q1;
+
+  vec_t cos_theta = vec4_dot(q0, q1);
+
+  if (cos_theta < 0.f) {
+    q         = vec4_neg(q1);
+    cos_theta = -cos_theta;
+  }
+
+  if (cos_theta > 1.f - M_EPSILON)
+    return vec4_lerp(q0, q1, t);
+
+  vec_t const angle = vec_acos(cos_theta);
+
+  return vec4_div(vec4_add(vec4_mul(q0, vec_sin((1.f - t) * angle)),
+                           vec4_mul(q, vec_sin(t * angle))),
+                  vec_sin(angle));
 }
 
 static vec3_t rgb_to_xyz(vec3_t const rgb) {
