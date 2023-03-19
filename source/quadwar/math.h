@@ -148,6 +148,13 @@ static vec_t vec_clamp(vec_t const x, vec_t const x0,
   return fmax(x0, fmin(x, x1));
 }
 
+static vec3_t vec3_clamp(vec3_t const x, vec3_t const x0,
+                         vec3_t const x1) {
+  return vec3(vec_clamp(x.v[0], x0.v[0], x1.v[0]),
+              vec_clamp(x.v[1], x0.v[1], x1.v[1]),
+              vec_clamp(x.v[2], x0.v[2], x1.v[2]));
+}
+
 static vec_t vec_sqrt(vec_t const x) {
   return sqrtf(x);
 }
@@ -604,7 +611,8 @@ static vec3_t xyz_to_rgb(vec3_t const xyz) {
   else
     blue = 12.92f * blue;
 
-  return vec3(red, green, blue);
+  return vec3_clamp(vec3(red, green, blue), vec3(0.f, 0.f, 0.f),
+                    vec3(1.f, 1.f, 1.f));
 }
 
 static vec3_t lab_to_lch(vec3_t const lab) {

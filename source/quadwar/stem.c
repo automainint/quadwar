@@ -62,10 +62,14 @@ static char const *const fragment_shader_source = //
           if (specular > 0.0)               //
             specular = pow(specular, 15.0); //
 
-          out_color = clamp(
-              u_color * (ambient + diffusion + specular),
-              vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0)); //
-        }                                                          //
+          vec4 black = vec4(0.0, 0.0, 0.0, 0.0);
+          vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
+
+          vec4 c = u_color * (ambient + diffusion) + white * specular;
+
+          out_color = clamp(c, black,
+                            white); //
+        }                           //
     );
 
 static GLuint vertex_array;
@@ -103,12 +107,13 @@ static int camera_normalization = 1;
 static camera_t camera;
 
 enum {
-  MAP_SIZE_X      = 100,
-  MAP_SIZE_Y      = 100,
+  MAP_SIZE_X      = 20,
+  MAP_SIZE_Y      = 20,
   MAP_DATA_OFFSET = MAP_SIZE_X * MAP_SIZE_Y * 18
 };
 
 #define MAP_SCALE_Z 0.001f
+#define MAP_CELL_SIZE 2.f
 
 #define OFFSET(x) ((void *) (sizeof(vec_t) * (x)))
 
@@ -255,7 +260,7 @@ void qw_down(int const key) {
       shaders_build(1);
       break;
 
-    case QW_KEY_R:
+    case QW_KEY_V:
       camera = camera_normal_local(camera, world_up, 1.f);
       break;
 
@@ -395,27 +400,27 @@ void qw_init(void) {
       vertices[n + 8]  = h3;
       vertices[n + 14] = h3;
 
-      vertices[n]     = -MAP_SIZE_X * .5f + i;
-      vertices[n + 1] = -MAP_SIZE_Y * .5f + j;
+      vertices[n]     = (-MAP_SIZE_X * .5f + i) * MAP_CELL_SIZE;
+      vertices[n + 1] = (-MAP_SIZE_Y * .5f + j) * MAP_CELL_SIZE;
 
-      vertices[n + 3] = -MAP_SIZE_X * .5f + i + 1;
-      vertices[n + 4] = -MAP_SIZE_Y * .5f + j;
+      vertices[n + 3] = (-MAP_SIZE_X * .5f + i + 1) * MAP_CELL_SIZE;
+      vertices[n + 4] = (-MAP_SIZE_Y * .5f + j) * MAP_CELL_SIZE;
 
-      vertices[n + 6] = -MAP_SIZE_X * .5f + i + 1;
-      vertices[n + 7] = -MAP_SIZE_Y * .5f + j + 1;
+      vertices[n + 6] = (-MAP_SIZE_X * .5f + i + 1) * MAP_CELL_SIZE;
+      vertices[n + 7] = (-MAP_SIZE_Y * .5f + j + 1) * MAP_CELL_SIZE;
 
-      vertices[n + 9]  = -MAP_SIZE_X * .5f + i;
-      vertices[n + 10] = -MAP_SIZE_Y * .5f + j;
+      vertices[n + 9]  = (-MAP_SIZE_X * .5f + i) * MAP_CELL_SIZE;
+      vertices[n + 10] = (-MAP_SIZE_Y * .5f + j) * MAP_CELL_SIZE;
 
-      vertices[n + 12] = -MAP_SIZE_X * .5f + i + 1;
-      vertices[n + 13] = -MAP_SIZE_Y * .5f + j + 1;
+      vertices[n + 12] = (-MAP_SIZE_X * .5f + i + 1) * MAP_CELL_SIZE;
+      vertices[n + 13] = (-MAP_SIZE_Y * .5f + j + 1) * MAP_CELL_SIZE;
 
-      vertices[n + 15] = -MAP_SIZE_X * .5f + i;
-      vertices[n + 16] = -MAP_SIZE_Y * .5f + j + 1;
+      vertices[n + 15] = (-MAP_SIZE_X * .5f + i) * MAP_CELL_SIZE;
+      vertices[n + 16] = (-MAP_SIZE_Y * .5f + j + 1) * MAP_CELL_SIZE;
 
-      vec3_t const r0 = vec3(1.f, 0.f,
+      vec3_t const r0 = vec3(MAP_CELL_SIZE, 0.f,
                              vertices[n + 5] - vertices[n + 2]);
-      vec3_t const r1 = vec3(0.f, 1.f,
+      vec3_t const r1 = vec3(0.f, MAP_CELL_SIZE,
                              vertices[n + 17] - vertices[n + 2]);
 
       vec3_t const r = vec3_normal(vec3_cross(r0, r1));
@@ -477,7 +482,8 @@ void qw_size(int const width, int const height) {
 }
 
 int qw_frame(int64_t const time_elapsed) {
-  vec_t const movement_factor = is_down[QW_KEY_LSHIFT]
+  vec_t const movement_factor = is_down[QW_KEY_LSHIFT] ||
+                                        is_down[QW_KEY_R]
                                     ? sense_movement *
                                           sense_acceleration
                                     : sense_movement;
@@ -528,7 +534,7 @@ int qw_frame(int64_t const time_elapsed) {
   qw_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
   qw_glUniform3f(u_eye, camera.position.v[0], camera.position.v[1],
                  camera.position.v[2]);
-  qw_glUniform3f(u_light, 10.f, 15.f, 20.f);
+  qw_glUniform3f(u_light, 10.f, 15.f, 25.f);
   qw_glUniform4f(u_color, color.v[0], color.v[1], color.v[2], 1.f);
 
   qw_glBindVertexArray(vertex_array);
