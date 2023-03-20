@@ -469,7 +469,8 @@ void qw_init(void) {
 
   shaders_build(0);
 
-  camera = camera_look_at(vec3(-1.f, .5f, 2.f), vec3(0.f, 0.f, 0.f));
+  camera = camera_look_at(vec3(-17.f, -14.f, 5.f),
+                          vec3(0.f, 0.f, 2.f));
 }
 
 void qw_cleanup(void) {
