@@ -75,12 +75,10 @@ static void loop(void) {
               event.key.keysym.sym == SDLK_RALT)
             g_app.is_alt++;
 #ifdef __EMSCRIPTEN__
-          if (!g_app.is_fullscreen &&
-              event.key.keysym.sym == SDLK_f) {
+          if (!g_app.is_fullscreen && event.key.keysym.sym == SDLK_f)
             SDL_SetWindowFullscreen(g_app.window,
                                     SDL_WINDOW_FULLSCREEN_DESKTOP);
-            g_app.is_fullscreen = 1;
-          }
+
 #else
           if (g_app.is_alt > 0 &&
               event.key.keysym.sym == SDLK_RETURN) {
@@ -116,16 +114,6 @@ static void loop(void) {
       case SDL_MOUSEBUTTONUP:
         qw_up(qw_key_map[buttons[event.button.button]]);
         break;
-#ifdef __EMSCRIPTEN__
-      case SDL_WINDOWEVENT:
-        /*  Emscripten sends this message when exiting fullscreen
-         *  mode.
-         */
-        if (event.window.event == SDL_WINDOWEVENT_RESIZED &&
-            g_app.is_fullscreen)
-          g_app.is_fullscreen = 0;
-        break;
-#endif
       case SDL_QUIT: g_app.done = 1; break;
     }
   }
@@ -168,6 +156,19 @@ static void loop(void) {
     g_app.time_frame -= 1000;
   }
 }
+
+#ifdef __EMSCRIPTEN__
+static EM_BOOL fullscreen(
+    int const                                    event_type,
+    EmscriptenFullscreenChangeEvent const *const event_data,
+    void *const                                  user_data) {
+  if (event_data->isFullscreen)
+    g_app.is_fullscreen = 1;
+  else
+    g_app.is_fullscreen = 0;
+  return 1;
+}
+#endif
 
 int main(int argc, char **argv) {
   printf("Quadwar, development version\n");
@@ -238,6 +239,8 @@ int main(int argc, char **argv) {
     printf("Audio:    %s\n", audio);
 
 #ifdef __EMSCRIPTEN__
+  emscripten_set_fullscreenchange_callback("canvas", NULL, 0,
+                                           fullscreen);
   emscripten_set_main_loop(loop, 0, 0);
 #endif
 
