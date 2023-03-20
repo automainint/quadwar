@@ -23,6 +23,7 @@ LOAD_(qw_glGetProgramInfoLog, "glGetProgramInfoLog");
 LOAD_(qw_glGetProgramiv, "glGetProgramiv");
 LOAD_(qw_glGetShaderInfoLog, "glGetShaderInfoLog");
 LOAD_(qw_glGetShaderiv, "glGetShaderiv");
+LOAD_(qw_glGetString, "glGetString");
 LOAD_(qw_glGetUniformLocation, "glGetUniformLocation");
 LOAD_(qw_glLinkProgram, "glLinkProgram");
 LOAD_(qw_glProgramBinary, "glProgramBinary");

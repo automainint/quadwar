@@ -28,6 +28,7 @@ typedef void (GL_API *pfn_glGetProgramInfoLog)(GLuint program, GLsizei bufSize, 
 typedef void (GL_API *pfn_glGetProgramiv)(GLuint program, GLenum pname, GLint *params);
 typedef void (GL_API *pfn_glGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
 typedef void (GL_API *pfn_glGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
+typedef const GLubyte *(GL_API *pfn_glGetString)(GLenum name);
 typedef GLint (GL_API *pfn_glGetUniformLocation)(GLuint program, const GLchar *name);
 typedef void (GL_API *pfn_glLinkProgram)(GLuint program);
 typedef void (GL_API *pfn_glProgramBinary)(GLuint program, GLenum binaryFormat, const void *binary, GLsizei length);
@@ -64,6 +65,7 @@ extern pfn_glGetProgramInfoLog qw_glGetProgramInfoLog;
 extern pfn_glGetProgramiv qw_glGetProgramiv;
 extern pfn_glGetShaderInfoLog qw_glGetShaderInfoLog;
 extern pfn_glGetShaderiv qw_glGetShaderiv;
+extern pfn_glGetString qw_glGetString;
 extern pfn_glGetUniformLocation qw_glGetUniformLocation;
 extern pfn_glLinkProgram qw_glLinkProgram;
 extern pfn_glProgramBinary qw_glProgramBinary;

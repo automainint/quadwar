@@ -207,16 +207,19 @@ int main(int argc, char **argv) {
     return QW_ERROR;
   }
 
-  int const   cpu_count = SDL_GetCPUCount();
-  char const *platform  = SDL_GetPlatform();
-  char const *video     = SDL_GetCurrentVideoDriver();
-  char const *audio     = SDL_GetCurrentAudioDriver();
+  int const         cpu_count = SDL_GetCPUCount();
+  char const *const platform  = SDL_GetPlatform();
+  char const *const video     = SDL_GetCurrentVideoDriver();
+  char const *const audio     = SDL_GetCurrentAudioDriver();
+  char const *const gpu = (char const *) qw_glGetString(GL_RENDERER);
 
   if (cpu_count == 1)
     printf("CPU:      1 core,");
   else
     printf("CPU:      %d cores,", cpu_count);
   printf(" %d bytes L1 cache\n", SDL_GetCPUCacheLineSize());
+  if (gpu != NULL)
+    printf("GPU:      %s\n", gpu);
   if (platform != NULL)
     printf("Platform: %s\n", platform);
   if (video != NULL)

@@ -42,7 +42,8 @@ def main():
                      'glUniform4f',
                      'glBindVertexArray',
                      'glDrawArrays',
-                     'glBindVertexArray']
+                     'glBindVertexArray',
+                     'glGetString']
 
   folder = os.path.join('source', 'quadwar', 'gl')
   gl_folder = '.gen_gl'

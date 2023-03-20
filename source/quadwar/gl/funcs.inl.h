@@ -28,6 +28,7 @@ pfn_glGetProgramInfoLog qw_glGetProgramInfoLog = NULL;
 pfn_glGetProgramiv qw_glGetProgramiv = NULL;
 pfn_glGetShaderInfoLog qw_glGetShaderInfoLog = NULL;
 pfn_glGetShaderiv qw_glGetShaderiv = NULL;
+pfn_glGetString qw_glGetString = NULL;
 pfn_glGetUniformLocation qw_glGetUniformLocation = NULL;
 pfn_glLinkProgram qw_glLinkProgram = NULL;
 pfn_glProgramBinary qw_glProgramBinary = NULL;
