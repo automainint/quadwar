@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
     printf("CPU:      1 core,");
   else
     printf("CPU:      %d cores,", cpu_count);
-  printf(" %d bytes L1 cache\n", SDL_GetCPUCacheLineSize());
+  printf(" %d bytes L1 cache line\n", SDL_GetCPUCacheLineSize());
   if (gpu != NULL)
     printf("GPU:      %s\n", gpu);
   if (platform != NULL)

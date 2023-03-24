@@ -3,9 +3,9 @@
 #include "camera.h"
 #include "gl/gl.h"
 #include "math.h"
+#include <kit/allocator.h>
 #include <kit/mersenne_twister_64.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #define CODE_(...) #__VA_ARGS__
 
@@ -120,6 +120,8 @@ enum {
 static void shaders_build(int rebuild) {
   static char const cache_file[] = ".cache_shader.bin";
 
+  kit_allocator_t alloc = kit_alloc_default();
+
   FILE *in = NULL;
 
   if (!rebuild)
@@ -133,7 +135,8 @@ static void shaders_build(int rebuild) {
     fread(&binary_size, 4, 1, in);
     fread(&binary_format, 4, 1, in);
 
-    binary_data = (uint8_t *) malloc(binary_size);
+    binary_data = (uint8_t *) kit_alloc_dispatch(
+        alloc, KIT_ALLOCATE, binary_size, 0, NULL);
 
     if (binary_data != NULL) {
       fread(binary_data, 1, binary_size, in);
@@ -145,7 +148,7 @@ static void shaders_build(int rebuild) {
       qw_glProgramBinary(shader_program, (GLenum) binary_format,
                          binary_data, binary_size);
 
-      free(binary_data);
+      kit_alloc_dispatch(alloc, KIT_DEALLOCATE, 0, 0, binary_data);
     }
 
     fclose(in);
@@ -210,7 +213,8 @@ static void shaders_build(int rebuild) {
         qw_glGetProgramiv(shader_program, GL_PROGRAM_BINARY_LENGTH,
                           &binary_size);
 
-        binary_data = (uint8_t *) malloc(binary_size);
+        binary_data = (uint8_t *) kit_alloc_dispatch(
+            alloc, KIT_ALLOCATE, binary_size, 0, NULL);
 
         if (binary_data != NULL) {
           int written;
@@ -225,7 +229,8 @@ static void shaders_build(int rebuild) {
           fwrite(&binary_format, 4, 1, out);
           fwrite(binary_data, 1, written, out);
 
-          free(binary_data);
+          kit_alloc_dispatch(alloc, KIT_DEALLOCATE, 0, 0,
+                             binary_data);
         }
 
         fclose(out);
