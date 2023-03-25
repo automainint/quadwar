@@ -17,6 +17,9 @@ add_executable(quadwar)
 include(FetchContent)
 
 find_package(kit QUIET)
+find_package(peer QUIET)
+find_package(eval QUIET)
+find_package(laplace QUIET)
 
 if(NOT kit_FOUND)
   FetchContent_Declare(
@@ -27,7 +30,34 @@ if(NOT kit_FOUND)
   FetchContent_MakeAvailable(kit)
 endif()
 
-target_link_libraries(quadwar PRIVATE kit::kit)
+if(NOT peer_FOUND)
+  FetchContent_Declare(
+    peer
+    GIT_REPOSITORY https://github.com/automainint/peer.git
+    GIT_TAG dev)
+  set(PEER_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(peer)
+endif()
+
+if(NOT eval_FOUND)
+  FetchContent_Declare(
+    eval
+    GIT_REPOSITORY https://github.com/automainint/eval.git
+    GIT_TAG dev)
+  set(EVAL_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(eval)
+endif()
+
+if(NOT laplace_FOUND)
+  FetchContent_Declare(
+    laplace
+    GIT_REPOSITORY https://github.com/automainint/laplace.git
+    GIT_TAG dev)
+  set(LAPLACE_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(laplace)
+endif()
+
+target_link_libraries(quadwar PRIVATE kit::kit peer::peer eval::eval laplace::laplace)
 
 find_package(SDL2 QUIET)
 
