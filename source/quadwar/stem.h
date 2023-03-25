@@ -16,7 +16,7 @@ void qw_wheel(float delta_x, float delta_y);
 void qw_init(void);
 void qw_cleanup(void);
 void qw_size(int width, int height);
-int  qw_frame(int64_t time_elapsed);
+int  qw_frame(int64_t time_elapsed, ptrdiff_t fps);
 
 #ifdef __cplusplus
 }

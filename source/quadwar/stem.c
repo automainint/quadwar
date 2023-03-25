@@ -490,7 +490,7 @@ void qw_size(int const width, int const height) {
   aspect_ratio = ((vec_t) width) / (vec_t) height;
 }
 
-int qw_frame(int64_t const time_elapsed) {
+int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
   vec_t const movement_factor = is_down[QW_KEY_LSHIFT] ||
                                         is_down[QW_KEY_R]
                                     ? sense_movement *

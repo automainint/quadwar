@@ -56,6 +56,9 @@ static struct {
   int             is_fullscreen;
   int             frames;
   int64_t         time_frame;
+  int             fps;
+  int             fps_v[10];
+  int             fps_index;
 } g_app;
 
 static void loop(void) {
@@ -139,7 +142,7 @@ static void loop(void) {
                             1000000;
   g_app.time_extra = (time_elapsed + g_app.time_extra) % 1000000;
 
-  if (qw_frame(time_elapsed_ms) == QW_DONE)
+  if (qw_frame(time_elapsed_ms, g_app.fps) == QW_DONE)
     g_app.done = 1;
 
   SDL_GL_SwapWindow(g_app.window);
@@ -147,13 +150,17 @@ static void loop(void) {
   g_app.frames++;
   g_app.time_frame += time_elapsed_ms;
 
-  if (g_app.time_frame >= 1000) {
+  if (g_app.time_frame >= 100) {
+    g_app.fps_v[g_app.fps_index] = g_app.frames;
+    g_app.fps_index              = (g_app.fps_index + 1) % 10;
+    for (int i = 0; i < 10; i++) g_app.fps += g_app.fps_v[i];
 #ifndef __EMSCRIPTEN__
-    printf("FPS: %d\r", g_app.frames);
+    printf("FPS: %d\r", g_app.fps);
     fflush(stdout);
 #endif
     g_app.frames = 0;
-    g_app.time_frame -= 1000;
+    g_app.time_frame -= 100;
+    g_app.fps = 0;
   }
 }
 
