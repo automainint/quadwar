@@ -24,6 +24,10 @@ extern "C" {
 typedef float vec_t;
 
 typedef struct {
+  vec_t v[2];
+} vec2_t;
+
+typedef struct {
   vec_t v[3];
 } vec3_t;
 
@@ -47,6 +51,11 @@ typedef struct {
 #  pragma GCC push_options
 #  pragma GCC optimize("O3")
 #endif
+
+static vec2_t vec2(vec_t const x, vec_t const y) {
+  vec2_t const v = { { x, y } };
+  return v;
+}
 
 static vec3_t vec3(vec_t const x, vec_t const y, vec_t const z) {
   vec3_t const v = { { x, y, z } };
