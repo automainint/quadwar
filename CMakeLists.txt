@@ -59,27 +59,32 @@ endif()
 
 target_link_libraries(quadwar PRIVATE kit::kit peer::peer eval::eval laplace::laplace)
 
-find_package(SDL2 QUIET)
-
-if(SDL2_FOUND)
-  target_link_libraries(
-    quadwar
-    PRIVATE
-    SDL2::SDL2-static SDL2::SDL2main)
+if(EMSCRIPTEN)
+  target_compile_options(quadwar PRIVATE -sUSE_SDL=2)
+  target_link_options(quadwar PRIVATE -sUSE_SDL=2 -sFULL_ES3)
 else()
-  FetchContent_Declare(
-    SDL2
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG SDL2)
-  set(SDL_TEST OFF CACHE BOOL "" FORCE)
-  set(SDL_STATIC ON CACHE BOOL "" FORCE)
-  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(SDL2)
+  find_package(SDL2 QUIET)
 
-  target_link_libraries(
-    quadwar
-    PRIVATE
-    SDL2-static SDL2main)
+  if(SDL2_FOUND)
+    target_link_libraries(
+      quadwar
+      PRIVATE
+      SDL2::SDL2-static SDL2::SDL2main)
+  else()
+    FetchContent_Declare(
+      SDL2
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+      GIT_TAG SDL2)
+    set(SDL_TEST OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(SDL2)
+
+    target_link_libraries(
+      quadwar
+      PRIVATE
+      SDL2-static SDL2main)
+  endif()
 endif()
 
 if(NOT WIN32)
@@ -105,10 +110,6 @@ if(CMAKE_BUILD_TYPE MATCHES "release|RELEASE|Release")
   if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(quadwar PRIVATE -O3)
   endif()
-endif()
-
-if(EMSCRIPTEN)
-  target_link_options(quadwar PRIVATE -sFULL_ES3)
 endif()
 
 add_subdirectory(source)
