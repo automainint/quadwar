@@ -73,26 +73,25 @@ static char const *const source_solid_fragment = //
 
 static char const *const source_flat_vertex = //
     "#version 300 es\n"                       //
-    CODE_(
-        uniform vec3 u_screen, //
+    CODE_(uniform vec3 u_screen;              //
 
-        in vec2 in_position; //
-        in vec2 in_texcoord; //
-        in vec4 in_color;    //
+          in vec2 in_position; //
+          in vec2 in_texcoord; //
+          in vec4 in_color;    //
 
-        out vec2 f_texcoord; //
-        out vec4 f_color;    //
+          out vec2 f_texcoord; //
+          out vec4 f_color;    //
 
-        void main(void) {           //
-          f_texcoord = in_texcoord; //
-          f_color    = in_color;    //
+          void main(void) {           //
+            f_texcoord = in_texcoord; //
+            f_color    = in_color;    //
 
-          gl_Position = vec4(
-              -1.0 + 2.0 * in_position.x / u_screen.x, //
-              1.0 - 2.0 * in_position.y / u_screen.y,  //
-              u_screen.z,                              //
-              1.0);                                    //
-        }                                              //
+            gl_Position = vec4(
+                -1.0 + 2.0 * in_position.x / u_screen.x, //
+                1.0 - 2.0 * in_position.y / u_screen.y,  //
+                u_screen.z,                              //
+                1.0);                                    //
+          }                                              //
     );
 
 static char const *const source_flat_fragment = //
@@ -130,6 +129,13 @@ static GLint u_eye;
 static GLint u_light;
 static GLint u_color;
 
+static GLuint flat_vertex;
+static GLuint flat_fragment;
+static GLuint flat_program;
+
+static GLint u_screen;
+static GLint u_texture;
+
 static DA(mesh_internal_t) mesh_array;
 
 static vec_t  aspect_ratio = 1.f;
@@ -139,34 +145,27 @@ static void graphics_shaders_cleanup(void) {
   qw_glDeleteProgram(solid_program);
   qw_glDeleteShader(solid_vertex);
   qw_glDeleteShader(solid_fragment);
+
+  qw_glDeleteProgram(flat_program);
+  qw_glDeleteShader(flat_vertex);
+  qw_glDeleteShader(flat_fragment);
 }
 
-static string_t get_cache_folder(void) {
-  kit_allocator_t alloc = kit_alloc_default();
-  string_t        s     = path_cache(alloc);
+static string_t get_cache_folder(kit_allocator_t alloc) {
+  string_t s      = path_cache(alloc);
   string_t result = path_join(WRAP_STR(s), SZ("quadwar"), alloc);
   DA_DESTROY(s);
   return result;
 }
 
-static kit_status_t graphics_shaders_load(int rebuild) {
+static kit_status_t graphics_load_shader(
+    int rebuild, str_t cache_folder, str_t name, GLuint *vert,
+    GLuint *frag, GLuint *prog, char const *src_vert,
+    char const *src_frag, kit_allocator_t alloc) {
   kit_status_t result = KIT_OK;
 
-  /*  FIXME
-   *  Load flat shaders.
-   */
-  (void) source_flat_vertex;
-  (void) source_flat_fragment;
-
-  kit_allocator_t alloc = kit_alloc_default();
-
-  string_t cache_folder = get_cache_folder();
-  string_t cache_file   = path_join(WRAP_STR(cache_folder),
-                                    SZ("shader_solid.bin"), alloc);
-  file_create_folder_recursive(WRAP_STR(cache_folder));
-  DA_DESTROY(cache_folder);
-
-  FILE *in = NULL;
+  string_t cache_file = path_join(cache_folder, name, alloc);
+  FILE    *in         = NULL;
 
   if (!rebuild)
     in = fopen(BS(cache_file), "rb");
@@ -185,79 +184,78 @@ static kit_status_t graphics_shaders_load(int rebuild) {
     if (binary_data != NULL) {
       fread(binary_data, 1, binary_size, in);
 
-      printf("Load cached shader program binary\n");
+      printf("%s: Load cached shader program binary.\n", BS(name));
 
-      solid_program = qw_glCreateProgram();
+      *prog = qw_glCreateProgram();
 
-      qw_glProgramBinary(solid_program, (GLenum) binary_format,
-                         binary_data, binary_size);
+      qw_glProgramBinary(*prog, (GLenum) binary_format, binary_data,
+                         binary_size);
 
       kit_alloc_dispatch(alloc, KIT_DEALLOCATE, 0, 0, binary_data);
     }
 
     fclose(in);
   } else {
-    printf("Compile shader program\n");
+    printf("%s: Compile shader program.\n", BS(name));
 
-    solid_vertex = qw_glCreateShader(GL_VERTEX_SHADER);
+    *vert = qw_glCreateShader(GL_VERTEX_SHADER);
 
-    qw_glShaderSource(solid_vertex, 1, &source_solid_vertex, NULL);
-    qw_glCompileShader(solid_vertex);
+    qw_glShaderSource(*vert, 1, &src_vert, NULL);
+    qw_glCompileShader(*vert);
 
     GLint status;
-    qw_glGetShaderiv(solid_vertex, GL_COMPILE_STATUS, &status);
+    qw_glGetShaderiv(*vert, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  shader_log[1024];
       GLint shader_log_size = sizeof shader_log - 1;
-      qw_glGetShaderInfoLog(solid_vertex, sizeof shader_log,
+      qw_glGetShaderInfoLog(*vert, sizeof shader_log,
                             &shader_log_size, shader_log);
-      printf("Vertex shader compilation failed.\n%*s\n",
+      printf("%s: Vertex shader compilation failed.\n%*s\n", BS(name),
              shader_log_size, shader_log);
       result = QW_ERROR;
     }
 
-    solid_fragment = qw_glCreateShader(GL_FRAGMENT_SHADER);
+    *frag = qw_glCreateShader(GL_FRAGMENT_SHADER);
 
-    qw_glShaderSource(solid_fragment, 1, &source_solid_fragment,
-                      NULL);
-    qw_glCompileShader(solid_fragment);
+    qw_glShaderSource(*frag, 1, &src_frag, NULL);
+    qw_glCompileShader(*frag);
 
-    qw_glGetShaderiv(solid_fragment, GL_COMPILE_STATUS, &status);
+    qw_glGetShaderiv(*frag, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  shader_log[1024];
       GLint shader_log_size = sizeof shader_log - 1;
-      qw_glGetShaderInfoLog(solid_fragment, sizeof shader_log,
+      qw_glGetShaderInfoLog(*frag, sizeof shader_log,
                             &shader_log_size, shader_log);
-      printf("Fragment shader compilation failed.\n%*s\n",
-             shader_log_size, shader_log);
+      printf("%s: Fragment shader compilation failed.\n%*s\n",
+             BS(name), shader_log_size, shader_log);
       result = QW_ERROR;
     }
 
-    solid_program = qw_glCreateProgram();
+    *prog = qw_glCreateProgram();
 
-    qw_glAttachShader(solid_program, solid_vertex);
-    qw_glAttachShader(solid_program, solid_fragment);
+    qw_glAttachShader(*prog, *vert);
+    qw_glAttachShader(*prog, *frag);
 
-    qw_glLinkProgram(solid_program);
+    qw_glLinkProgram(*prog);
 
-    qw_glGetProgramiv(solid_program, GL_LINK_STATUS, &status);
+    qw_glGetProgramiv(*prog, GL_LINK_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  program_log[1024];
       GLint program_log_size = sizeof program_log - 1;
-      qw_glGetProgramInfoLog(solid_program, sizeof program_log,
+      qw_glGetProgramInfoLog(*prog, sizeof program_log,
                              &program_log_size, program_log);
-      printf("Shader program link failed.\n%*s\n", program_log_size,
-             program_log);
+      printf("%s: Shader program link failed.\n%*s\n", BS(name),
+             program_log_size, program_log);
       result = QW_ERROR;
     } else {
 #ifndef __EMSCRIPTEN__
       FILE *out = fopen(BS(cache_file), "wb");
 
       if (out != NULL) {
-        qw_glGetProgramiv(solid_program, GL_PROGRAM_BINARY_LENGTH,
+        qw_glGetProgramiv(*prog, GL_PROGRAM_BINARY_LENGTH,
                           &binary_size);
 
         binary_data = (uint8_t *) kit_alloc_dispatch(
@@ -266,11 +264,11 @@ static kit_status_t graphics_shaders_load(int rebuild) {
         if (binary_data != NULL) {
           int written;
 
-          qw_glGetProgramBinary(solid_program, binary_size, &written,
+          qw_glGetProgramBinary(*prog, binary_size, &written,
                                 (GLenum *) &binary_format,
                                 binary_data);
 
-          printf("Cache shader program binary\n");
+          printf("%s: Cache shader program binary.\n", BS(name));
 
           fwrite(&written, 4, 1, out);
           fwrite(&binary_format, 4, 1, out);
@@ -286,8 +284,37 @@ static kit_status_t graphics_shaders_load(int rebuild) {
     }
   }
 
+  DA_DESTROY(cache_file);
+
+  return result;
+}
+
+static kit_status_t graphics_shaders_load(int rebuild) {
+  kit_status_t result = KIT_OK;
+
+  kit_allocator_t alloc = kit_alloc_default();
+
+  string_t cache_folder = get_cache_folder(alloc);
+  file_create_folder_recursive(WRAP_STR(cache_folder));
+
+  graphics_load_shader(
+      rebuild, WRAP_STR(cache_folder), SZ("shader_solid.bin"),
+      &solid_vertex, &solid_fragment, &solid_program,
+      source_solid_vertex, source_solid_fragment, alloc);
+
+  graphics_load_shader(
+      rebuild, WRAP_STR(cache_folder), SZ("shader_flat.bin"),
+      &flat_vertex, &flat_fragment, &flat_program, source_flat_vertex,
+      source_flat_fragment, alloc);
+
+  DA_DESTROY(cache_folder);
+
   qw_glBindAttribLocation(solid_program, 0, "in_position");
   qw_glBindAttribLocation(solid_program, 1, "in_normal");
+
+  qw_glBindAttribLocation(flat_program, 0, "in_position");
+  qw_glBindAttribLocation(flat_program, 1, "in_texcoord");
+  qw_glBindAttribLocation(flat_program, 2, "in_color");
 
   u_view   = qw_glGetUniformLocation(solid_program, "u_view");
   u_object = qw_glGetUniformLocation(solid_program, "u_object");
@@ -295,7 +322,8 @@ static kit_status_t graphics_shaders_load(int rebuild) {
   u_light  = qw_glGetUniformLocation(solid_program, "u_light");
   u_color  = qw_glGetUniformLocation(solid_program, "u_color");
 
-  DA_DESTROY(cache_file);
+  u_screen  = qw_glGetUniformLocation(flat_program, "u_screen");
+  u_texture = qw_glGetUniformLocation(flat_program, "u_texture");
 
   return result;
 }
