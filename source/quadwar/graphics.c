@@ -481,7 +481,7 @@ kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
 
     qw_glUseProgram(flat_program);
     qw_glUniform3f(u_screen, screen_width, screen_height, -.5f);
-    //    qw_glUniform1i(u_texture, 0);
+    qw_glUniform1i(u_texture, 0);
 
     vec_t const position[] = {
       100.f, 100.f, //
