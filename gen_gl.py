@@ -40,6 +40,8 @@ def main():
                      'glUniformMatrix4fv',
                      'glUniform3f',
                      'glUniform4f',
+                     'glUniform3fv',
+                     'glUniform4fv',
                      'glBindVertexArray',
                      'glDrawArrays',
                      'glBindVertexArray',

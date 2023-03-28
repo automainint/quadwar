@@ -399,7 +399,7 @@ void mesh_destroy(mesh_t *mesh) {
   DA_DESTROY(mesh->data.vertices);
 }
 
-kit_status_t mesh_render(mesh_t *mesh, camera_t camera) {
+kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
   kit_status_t status = KIT_OK;
 
   status |= graphics_init();
@@ -409,16 +409,15 @@ kit_status_t mesh_render(mesh_t *mesh, camera_t camera) {
     /*  FIXME
      *  Compute the camera matrix beforehand.
      */
-    mat4_t const object = camera_to_mat4(camera);
+    mat4_t const object = camera_to_mat4(scene->camera);
 
     qw_glEnable(GL_DEPTH_TEST);
 
     qw_glUseProgram(solid_program);
     qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
     qw_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
-    qw_glUniform3f(u_eye, camera.position.v[0], camera.position.v[1],
-                   camera.position.v[2]);
-    qw_glUniform3f(u_light, 10.f, 15.f, 25.f);
+    qw_glUniform3fv(u_eye, 1, scene->camera.position.v);
+    qw_glUniform3fv(u_light, 1, scene->light_position.v);
     qw_glUniform4f(u_color, mesh->color.v[0], mesh->color.v[1],
                    mesh->color.v[2], 1.f);
 

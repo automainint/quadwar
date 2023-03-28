@@ -23,8 +23,8 @@ static vec_t        camera_normal_factor = .005f;
 static int camera_mode          = 0;
 static int camera_normalization = 1;
 
-static camera_t camera;
-static mesh_t   world;
+static scene_t scene;
+static mesh_t  world;
 
 enum { MAP_SIZE_X = 20, MAP_SIZE_Y = 20 };
 
@@ -43,7 +43,7 @@ void qw_down(int const key) {
       break;
 
     case QW_KEY_V:
-      camera = camera_normal_local(camera, world_up, 1.f);
+      scene.camera = camera_normal_local(scene.camera, world_up, 1.f);
       break;
 
     case QW_KEY_1: camera_mode = 0; break;
@@ -67,11 +67,12 @@ void qw_motion(int const x, int const y, int const delta_x,
         /*  Rotation relative to camera up axis.
          */
 
-        camera = camera_rotate_local(
-            camera, quat_mul(quat_rotation(-delta_x * sense_motion,
-                                           camera_up),
-                             quat_rotation(-delta_y * sense_motion,
-                                           camera_right)));
+        scene.camera = camera_rotate_local(
+            scene.camera,
+            quat_mul(
+                quat_rotation(-delta_x * sense_motion, camera_up),
+                quat_rotation(-delta_y * sense_motion,
+                              camera_right)));
         break;
 
       case 1:
@@ -79,9 +80,9 @@ void qw_motion(int const x, int const y, int const delta_x,
          *  world up axis.
          */
 
-        camera = camera_normal(
+        scene.camera = camera_normal(
             camera_rotate_local(
-                camera,
+                scene.camera,
                 quat_mul(
                     quat_rotation(-delta_x * sense_motion, camera_up),
                     quat_rotation(-delta_y * sense_motion,
@@ -94,12 +95,12 @@ void qw_motion(int const x, int const y, int const delta_x,
          */
 
         if (delta_x != 0)
-          camera = camera_rotate(
-              camera,
+          scene.camera = camera_rotate(
+              scene.camera,
               quat_rotation(-delta_x * sense_motion, world_up));
         if (delta_y != 0)
-          camera = camera_rotate_local(
-              camera,
+          scene.camera = camera_rotate_local(
+              scene.camera,
               quat_rotation(-delta_y * sense_motion, camera_right));
         break;
 
@@ -108,15 +109,15 @@ void qw_motion(int const x, int const y, int const delta_x,
   }
 
   if (is_down[QW_KEY_BUTTON_RIGHT])
-    camera = camera_move_local(
-        camera,
+    scene.camera = camera_move_local(
+        scene.camera,
         vec3_add(vec3_mul(camera_right, delta_x * sense_motion),
                  vec3_mul(camera_up, -delta_y * sense_motion)));
 }
 
 void qw_wheel(float const delta_x, float const delta_y) {
-  camera = camera_move_local(
-      camera, vec3_mul(camera_forward, -delta_y * sense_wheel));
+  scene.camera = camera_move_local(
+      scene.camera, vec3_mul(camera_forward, -delta_y * sense_wheel));
 }
 
 void qw_init(void) {
@@ -210,8 +211,9 @@ void qw_init(void) {
   for (ptrdiff_t i = 0; i < world.data.vertices.size; i++)
     v[i].normal = vec3(0.f, 0.f, 1.f);
 
-  camera = camera_look_at(vec3(-17.f, -14.f, 5.f),
-                          vec3(0.f, 0.f, 2.f));
+  scene.camera         = camera_look_at(vec3(-17.f, -14.f, 5.f),
+                                        vec3(0.f, 0.f, 2.f));
+  scene.light_position = vec3(10.f, 15.f, 25.f);
 }
 
 void qw_cleanup(void) {
@@ -230,26 +232,26 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
                                     : sense_movement;
 
   if (is_down[QW_KEY_A])
-    camera = camera_move_local(
-        camera,
+    scene.camera = camera_move_local(
+        scene.camera,
         vec3_mul(camera_right, -movement_factor * time_elapsed));
   if (is_down[QW_KEY_D])
-    camera = camera_move_local(
-        camera,
+    scene.camera = camera_move_local(
+        scene.camera,
         vec3_mul(camera_right, movement_factor * time_elapsed));
 
   if (is_down[QW_KEY_W])
-    camera = camera_move_local(
-        camera,
+    scene.camera = camera_move_local(
+        scene.camera,
         vec3_mul(camera_forward, -movement_factor * time_elapsed));
   if (is_down[QW_KEY_S])
-    camera = camera_move_local(
-        camera,
+    scene.camera = camera_move_local(
+        scene.camera,
         vec3_mul(camera_forward, movement_factor * time_elapsed));
 
   if (camera_normalization)
-    camera = camera_normal_local(camera, world_up,
-                                 camera_normal_factor * time_elapsed);
+    scene.camera = camera_normal_local(
+        scene.camera, world_up, camera_normal_factor * time_elapsed);
 
   graphics_clear(back_color);
 
@@ -259,7 +261,7 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
       vec3(47.f, 47.f, (2.f * M_PI) * (hue - floorf(hue))));
 
   world.color = color;
-  mesh_render(&world, camera);
+  mesh_render(&world, &scene);
 
   time += ((vec_t) time_elapsed) / 1000.f;
 
