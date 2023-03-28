@@ -48,7 +48,18 @@ def main():
                      'glUniform1i',
                      'glBindVertexArray',
                      'glDrawArrays',
-                     'glGetString']
+                     'glGetString',
+                     'glBlendFunc',
+                     'glGenFramebuffers',
+                     'glDeleteFramebuffers',
+                     'glBindFramebuffer',
+                     'glFramebufferTexture2D',
+                     'glGenTextures',
+                     'glDeleteTextures',
+                     'glBindTexture',
+                     'glTexImage2D',
+                     'glTexImage3D',
+                     'glTexParameteri']
 
   folder = os.path.join('source', 'quadwar', 'gl')
   gl_folder = '.gen_gl'
