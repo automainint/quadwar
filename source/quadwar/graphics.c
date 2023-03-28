@@ -1,6 +1,7 @@
 #include "graphics.h"
 
 #include "gl/gl.h"
+#include <kit/file.h>
 #include <stdio.h>
 
 #define CODE_(...) #__VA_ARGS__
@@ -140,6 +141,14 @@ static void graphics_shaders_cleanup(void) {
   qw_glDeleteShader(solid_fragment);
 }
 
+static string_t get_cache_folder(void) {
+  kit_allocator_t alloc = kit_alloc_default();
+  string_t        s     = path_cache(alloc);
+  string_t result = path_join(WRAP_STR(s), SZ("quadwar"), alloc);
+  DA_DESTROY(s);
+  return result;
+}
+
 static kit_status_t graphics_shaders_load(int rebuild) {
   kit_status_t result = KIT_OK;
 
@@ -149,14 +158,18 @@ static kit_status_t graphics_shaders_load(int rebuild) {
   (void) source_flat_vertex;
   (void) source_flat_fragment;
 
-  static char const cache_file[] = ".cache_shader.bin";
-
   kit_allocator_t alloc = kit_alloc_default();
+
+  string_t cache_folder = get_cache_folder();
+  string_t cache_file   = path_join(WRAP_STR(cache_folder),
+                                    SZ("shader_solid.bin"), alloc);
+  file_create_folder_recursive(WRAP_STR(cache_folder));
+  DA_DESTROY(cache_folder);
 
   FILE *in = NULL;
 
   if (!rebuild)
-    in = fopen(cache_file, "rb");
+    in = fopen(BS(cache_file), "rb");
 
   int32_t  binary_size;
   int32_t  binary_format;
@@ -241,7 +254,7 @@ static kit_status_t graphics_shaders_load(int rebuild) {
       result = QW_ERROR;
     } else {
 #ifndef __EMSCRIPTEN__
-      FILE *out = fopen(cache_file, "wb");
+      FILE *out = fopen(BS(cache_file), "wb");
 
       if (out != NULL) {
         qw_glGetProgramiv(solid_program, GL_PROGRAM_BINARY_LENGTH,
@@ -281,6 +294,8 @@ static kit_status_t graphics_shaders_load(int rebuild) {
   u_eye    = qw_glGetUniformLocation(solid_program, "u_eye");
   u_light  = qw_glGetUniformLocation(solid_program, "u_light");
   u_color  = qw_glGetUniformLocation(solid_program, "u_color");
+
+  DA_DESTROY(cache_file);
 
   return result;
 }
