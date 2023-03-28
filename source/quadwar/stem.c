@@ -121,13 +121,6 @@ void qw_wheel(float const delta_x, float const delta_y) {
 }
 
 void qw_init(void) {
-  printf("qw init\n");
-  fflush(stdout);
-
-  (void) sense_motion;
-  (void) sense_wheel;
-  (void) sense_movement;
-
   for (int i = 0; i < QW_KEY_MAP_SIZE; i++) qw_key_map[i] = i;
 
   back_color = lch_to_rgb(vec3(45.f, 7.f, .75f));
