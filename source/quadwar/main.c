@@ -252,9 +252,9 @@ int main(int argc, char **argv) {
   emscripten_set_fullscreenchange_callback("canvas", NULL, 0,
                                            fullscreen);
   emscripten_set_main_loop(loop, 0, 0);
-#endif
-
+#else
   SDL_GL_SetSwapInterval(DEFAULT_VSYNC ? 1 : 0);
+#endif
 
   qw_init();
 
