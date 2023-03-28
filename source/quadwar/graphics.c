@@ -136,6 +136,8 @@ static GLuint flat_program;
 static GLuint flat_fbo;
 static GLuint flat_texture;
 
+static GLuint white_texture;
+
 static GLint u_screen;
 static GLint u_texture;
 
@@ -340,12 +342,22 @@ static kit_status_t graphics_init(void) {
 
   qw_glGenFramebuffers(1, &flat_fbo);
   qw_glGenTextures(1, &flat_texture);
+  qw_glGenTextures(1, &white_texture);
 
   qw_glBindTexture(GL_TEXTURE_2D, flat_texture);
   qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_width,
                   screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  qw_glBindTexture(GL_TEXTURE_2D, white_texture);
+  uint8_t white[] = { 255, 255, 255, 255 };
+  qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA,
+                  GL_UNSIGNED_BYTE, white);
+  qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                     GL_NEAREST);
+  qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                     GL_NEAREST);
   qw_glBindTexture(GL_TEXTURE_2D, 0);
 
   qw_glBindFramebuffer(GL_FRAMEBUFFER, flat_fbo);
@@ -559,7 +571,7 @@ kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
                      (vec_t) screen_height, 0.f);
       qw_glUniform1i(u_texture, 0);
 
-      qw_glBindTexture(GL_TEXTURE_2D, 0);
+      qw_glBindTexture(GL_TEXTURE_2D, white_texture);
 
       qw_glDrawArrays(GL_TRIANGLES, 0, 6);
     }
@@ -616,6 +628,8 @@ kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
 
       qw_glDrawArrays(GL_TRIANGLES, 0, 6);
     }
+
+    qw_glBindTexture(GL_TEXTURE_2D, 0);
   }
 
   return status;
