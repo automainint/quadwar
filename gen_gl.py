@@ -36,15 +36,18 @@ def main():
                      'glClearDepthf',
                      'glClear',
                      'glEnable',
+                     'glDisable',
                      'glUseProgram',
                      'glUniformMatrix4fv',
+                     'glUniform2f',
                      'glUniform3f',
                      'glUniform4f',
+                     'glUniform2fv',
                      'glUniform3fv',
                      'glUniform4fv',
+                     'glUniform1i',
                      'glBindVertexArray',
                      'glDrawArrays',
-                     'glBindVertexArray',
                      'glGetString']
 
   folder = os.path.join('source', 'quadwar', 'gl')

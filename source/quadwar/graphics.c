@@ -106,9 +106,11 @@ static char const *const source_flat_fragment = //
 
         out vec4 out_color; //
 
-        void main(void) {                                       //
-          out_color = f_color * texture(u_texture, f_texcoord); //
-        }                                                       //
+        void main(void) { //
+          out_color = f_color * texture(u_texture,
+                                        f_texcoord); //
+          out_color = f_color;                       //
+        }                                            //
     );
 
 typedef struct {
@@ -138,7 +140,9 @@ static GLint u_texture;
 
 static DA(mesh_internal_t) mesh_array;
 
-static vec_t  aspect_ratio = 1.f;
+static vec_t  screen_width  = 1.f;
+static vec_t  screen_height = 1.f;
+static vec_t  aspect_ratio  = 1.f;
 static mat4_t projection_matrix;
 
 static void graphics_shaders_cleanup(void) {
@@ -411,6 +415,8 @@ void graphics_reset_mesh_data(void) {
 
 void graphics_viewport(int width, int height) {
   qw_glViewport(0, 0, width, height);
+  screen_width      = (vec_t) width;
+  screen_height     = (vec_t) height;
   aspect_ratio      = ((vec_t) width) / (vec_t) height;
   projection_matrix = mat4_perspective(M_PI * .1f, aspect_ratio, .1f,
                                        400.f);
@@ -455,7 +461,6 @@ kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
     mat4_t const object = camera_to_mat4(scene->camera);
 
     qw_glEnable(GL_DEPTH_TEST);
-    qw_glEnable(GL_FRAMEBUFFER_SRGB);
 
     qw_glUseProgram(solid_program);
     qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
@@ -471,6 +476,51 @@ kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
 
     qw_glBindVertexArray(0);
     qw_glUseProgram(0);
+
+    qw_glDisable(GL_DEPTH_TEST);
+
+    qw_glUseProgram(flat_program);
+    qw_glUniform3f(u_screen, screen_width, screen_height, -.5f);
+    //    qw_glUniform1i(u_texture, 0);
+
+    vec_t const position[] = {
+      100.f, 100.f, //
+      300.f, 100.f, //
+      300.f, 200.f, //
+      100.f, 100.f, //
+      300.f, 200.f, //
+      100.f, 200.f  //
+    };
+
+    vec_t const texcoord[] = {
+      0.f, 0.f, //
+      1.f, 0.f, //
+      1.f, 1.f, //
+      0.f, 0.f, //
+      1.f, 1.f, //
+      0.f, 1.f  //
+    };
+
+    vec_t const color[] = {
+      1.f, 0.f, 0.f, 1.f, //
+      0.f, 1.f, 0.f, 1.f, //
+      0.f, 0.f, 1.f, 1.f, //
+      1.f, 0.f, 0.f, 1.f, //
+      0.f, 0.f, 1.f, 1.f, //
+      1.f, 1.f, 0.f, 1.f  //
+    };
+
+    qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
+    qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+    qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color);
+
+    qw_glEnableVertexAttribArray(0);
+    qw_glEnableVertexAttribArray(1);
+    qw_glEnableVertexAttribArray(2);
+
+    qw_glDrawArrays(GL_TRIANGLES, 0, 6);
   }
 
   return status;
