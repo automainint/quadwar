@@ -455,6 +455,7 @@ kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
     mat4_t const object = camera_to_mat4(scene->camera);
 
     qw_glEnable(GL_DEPTH_TEST);
+    qw_glEnable(GL_FRAMEBUFFER_SRGB);
 
     qw_glUseProgram(solid_program);
     qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
