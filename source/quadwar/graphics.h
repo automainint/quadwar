@@ -31,15 +31,25 @@ typedef struct {
   vec3_t   light_position;
 } scene_t;
 
-kit_status_t graphics_rebuild_shaders(void);
-void         graphics_reset_mesh_data(void);
-void         graphics_viewport(int width, int height);
-void         graphics_clear(vec3_t color);
-void         graphics_cleanup(void);
+void graphics_rebuild_shaders(void);
+void graphics_reset_mesh_data(void);
+void graphics_viewport(int width, int height);
+void graphics_clear(vec3_t color);
+void graphics_cleanup(void);
 
-void         mesh_init(mesh_t *mesh, kit_allocator_t alloc);
-void         mesh_destroy(mesh_t *mesh);
-kit_status_t mesh_render(mesh_t *mesh, scene_t *scene);
+void mesh_init(mesh_t *mesh, kit_allocator_t alloc);
+void mesh_destroy(mesh_t *mesh);
+void mesh_render(mesh_t *mesh, scene_t *scene);
+
+void im_enter(void);
+void im_render(void);
+void im_clear(vec4_t color);
+void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
+                  ptrdiff_t height, vec4_t color);
+void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
+                    ptrdiff_t height, vec4_t color,
+                    ptrdiff_t image_width, ptrdiff_t image_height,
+                    uint8_t const *image_data);
 
 #ifdef __cplusplus
 }

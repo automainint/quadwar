@@ -136,7 +136,7 @@ static GLuint flat_program;
 static GLuint flat_fbo;
 static GLuint flat_texture;
 
-static GLuint white_texture;
+static GLuint temp_texture;
 
 static GLint u_screen;
 static GLint u_texture;
@@ -342,7 +342,7 @@ static kit_status_t graphics_init(void) {
 
   qw_glGenFramebuffers(1, &flat_fbo);
   qw_glGenTextures(1, &flat_texture);
-  qw_glGenTextures(1, &white_texture);
+  qw_glGenTextures(1, &temp_texture);
 
   qw_glBindTexture(GL_TEXTURE_2D, flat_texture);
   qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_width,
@@ -350,10 +350,7 @@ static kit_status_t graphics_init(void) {
   qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  qw_glBindTexture(GL_TEXTURE_2D, white_texture);
-  uint8_t white[] = { 255, 255, 255, 255 };
-  qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA,
-                  GL_UNSIGNED_BYTE, white);
+  qw_glBindTexture(GL_TEXTURE_2D, temp_texture);
   qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                      GL_NEAREST);
   qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
@@ -427,8 +424,8 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
   return KIT_OK;
 }
 
-kit_status_t graphics_rebuild_shaders(void) {
-  return graphics_shaders_load(1);
+void graphics_rebuild_shaders(void) {
+  graphics_shaders_load(1);
 }
 
 void graphics_reset_mesh_data(void) {
@@ -486,152 +483,221 @@ void mesh_destroy(mesh_t *mesh) {
   DA_DESTROY(mesh->data.vertices);
 }
 
-kit_status_t mesh_render(mesh_t *mesh, scene_t *scene) {
-  kit_status_t status = KIT_OK;
+void mesh_render(mesh_t *mesh, scene_t *scene) {
+  if (graphics_init() != KIT_OK)
+    return;
+  if (mesh_init_internal(mesh) != KIT_OK)
+    return;
 
-  status |= graphics_init();
-  status |= mesh_init_internal(mesh);
+  /*  FIXME
+   *  Compute the camera matrix beforehand.
+   */
+  mat4_t const object = camera_to_mat4(scene->camera);
 
-  if (status == KIT_OK) {
-    /*  FIXME
-     *  Compute the camera matrix beforehand.
-     */
-    mat4_t const object = camera_to_mat4(scene->camera);
+  qw_glEnable(GL_DEPTH_TEST);
+  qw_glDisable(GL_BLEND);
 
-    qw_glEnable(GL_DEPTH_TEST);
-    qw_glDisable(GL_BLEND);
+  qw_glUseProgram(solid_program);
+  qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
+  qw_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
+  qw_glUniform3fv(u_eye, 1, scene->camera.position.v);
+  qw_glUniform3fv(u_light, 1, scene->light_position.v);
+  qw_glUniform4f(u_color, mesh->color.v[0], mesh->color.v[1],
+                 mesh->color.v[2], 1.f);
 
-    qw_glUseProgram(solid_program);
-    qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
-    qw_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
-    qw_glUniform3fv(u_eye, 1, scene->camera.position.v);
-    qw_glUniform3fv(u_light, 1, scene->light_position.v);
-    qw_glUniform4f(u_color, mesh->color.v[0], mesh->color.v[1],
-                   mesh->color.v[2], 1.f);
+  qw_glBindVertexArray(mesh_array.values[mesh->id].vertex_array);
+  qw_glDrawArrays(GL_TRIANGLES, 0, mesh_array.values[mesh->id].size);
 
-    qw_glBindVertexArray(mesh_array.values[mesh->id].vertex_array);
-    qw_glDrawArrays(GL_TRIANGLES, 0,
-                    mesh_array.values[mesh->id].size);
+  qw_glBindVertexArray(0);
+  qw_glUseProgram(0);
 
-    qw_glBindVertexArray(0);
-    qw_glUseProgram(0);
+  { }
+}
 
-    qw_glDisable(GL_DEPTH_TEST);
+void im_enter(void) {
+  if (graphics_init() != KIT_OK)
+    return;
 
-    qw_glUseProgram(flat_program);
-    /*  Render UI to texture.
-     */
-    {
-      vec_t const position[] = {
-        100.f, 100.f, //
-        300.f, 100.f, //
-        300.f, 200.f, //
-        100.f, 100.f, //
-        300.f, 200.f, //
-        100.f, 200.f  //
-      };
+  qw_glBindFramebuffer(GL_FRAMEBUFFER, flat_fbo);
 
-      vec_t const texcoord[] = {
-        0.f, 0.f, //
-        1.f, 0.f, //
-        1.f, 1.f, //
-        0.f, 0.f, //
-        1.f, 1.f, //
-        0.f, 1.f  //
-      };
+  qw_glDisable(GL_DEPTH_TEST);
+  qw_glUseProgram(flat_program);
+}
 
-      vec_t const color[] = {
-        1.f, 0.f, 0.f, .5f, //
-        0.f, 1.f, 0.f, .5f, //
-        0.f, 0.f, 1.f, .5f, //
-        1.f, 0.f, 0.f, .5f, //
-        0.f, 0.f, 1.f, .5f, //
-        1.f, 1.f, 0.f, .5f  //
-      };
+void im_render(void) {
+  vec_t const position[] = {
+    0.f, 0.f, //
+    1.f, 0.f, //
+    1.f, 1.f, //
+    0.f, 0.f, //
+    1.f, 1.f, //
+    0.f, 1.f  //
+  };
 
-      qw_glBindFramebuffer(GL_FRAMEBUFFER, flat_fbo);
+  vec_t const texcoord[] = {
+    0.f, 1.f, //
+    1.f, 1.f, //
+    1.f, 0.f, //
+    0.f, 1.f, //
+    1.f, 0.f, //
+    0.f, 0.f  //
+  };
 
-      qw_glClearColor(0.f, 0.f, 0.f, 0.f);
-      qw_glClear(GL_COLOR_BUFFER_BIT);
+  vec_t const color[] = {
+    1.f, 1.f, 1.f, 1.f, //
+    1.f, 1.f, 1.f, 1.f, //
+    1.f, 1.f, 1.f, 1.f, //
+    1.f, 1.f, 1.f, 1.f, //
+    1.f, 1.f, 1.f, 1.f, //
+    1.f, 1.f, 1.f, 1.f  //
+  };
 
-      qw_glEnable(GL_BLEND);
-      qw_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  qw_glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-      qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
+  qw_glEnable(GL_BLEND);
+  qw_glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-      qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
-      qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-      qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color);
+  qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-      qw_glEnableVertexAttribArray(0);
-      qw_glEnableVertexAttribArray(1);
-      qw_glEnableVertexAttribArray(2);
+  qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
+  qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+  qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color);
 
-      qw_glUniform3f(u_screen, (vec_t) screen_width,
-                     (vec_t) screen_height, 0.f);
-      qw_glUniform1i(u_texture, 0);
+  qw_glEnableVertexAttribArray(0);
+  qw_glEnableVertexAttribArray(1);
+  qw_glEnableVertexAttribArray(2);
 
-      qw_glBindTexture(GL_TEXTURE_2D, white_texture);
+  qw_glUniform3f(u_screen, 1.0, 1.0, 0.f);
+  qw_glUniform1i(u_texture, 0);
 
-      qw_glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+  qw_glBindTexture(GL_TEXTURE_2D, flat_texture);
 
-    /*  Render texture on screen.
-     */
-    {
-      vec_t const position[] = {
-        0.f, 0.f, //
-        1.f, 0.f, //
-        1.f, 1.f, //
-        0.f, 0.f, //
-        1.f, 1.f, //
-        0.f, 1.f  //
-      };
+  qw_glDrawArrays(GL_TRIANGLES, 0, 6);
 
-      vec_t const texcoord[] = {
-        0.f, 1.f, //
-        1.f, 1.f, //
-        1.f, 0.f, //
-        0.f, 1.f, //
-        1.f, 0.f, //
-        0.f, 0.f  //
-      };
+  qw_glBindTexture(GL_TEXTURE_2D, 0);
+}
 
-      vec_t const color[] = {
-        1.f, 1.f, 1.f, 1.f, //
-        1.f, 1.f, 1.f, 1.f, //
-        1.f, 1.f, 1.f, 1.f, //
-        1.f, 1.f, 1.f, 1.f, //
-        1.f, 1.f, 1.f, 1.f, //
-        1.f, 1.f, 1.f, 1.f  //
-      };
+void im_clear(vec4_t color) {
+  qw_glClearColor(color.v[0], color.v[1], color.v[2], color.v[3]);
+  qw_glClear(GL_COLOR_BUFFER_BIT);
+}
 
-      qw_glBindFramebuffer(GL_FRAMEBUFFER, 0);
+void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
+                  ptrdiff_t height, vec4_t color) {
+  vec_t const position[] = {
+    x,         y,          //
+    x + width, y,          //
+    x + width, y + height, //
+    x,         y,          //
+    x + width, y + height, //
+    x,         y + height  //
+  };
 
-      qw_glEnable(GL_BLEND);
-      qw_glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  vec_t const texcoord[] = {
+    0.f, 0.f, //
+    1.f, 0.f, //
+    1.f, 1.f, //
+    0.f, 0.f, //
+    1.f, 1.f, //
+    0.f, 1.f  //
+  };
 
-      qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
+  vec_t const color_[] = {
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3]  //
+  };
 
-      qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
-      qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-      qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color);
+  qw_glEnable(GL_BLEND);
+  qw_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-      qw_glEnableVertexAttribArray(0);
-      qw_glEnableVertexAttribArray(1);
-      qw_glEnableVertexAttribArray(2);
+  qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-      qw_glUniform3f(u_screen, 1.0, 1.0, 0.f);
-      qw_glUniform1i(u_texture, 0);
+  qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
+  qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+  qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
 
-      qw_glBindTexture(GL_TEXTURE_2D, flat_texture);
+  qw_glEnableVertexAttribArray(0);
+  qw_glEnableVertexAttribArray(1);
+  qw_glEnableVertexAttribArray(2);
 
-      qw_glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+  qw_glUniform3f(u_screen, (vec_t) screen_width,
+                 (vec_t) screen_height, 0.f);
+  qw_glUniform1i(u_texture, 0);
 
-    qw_glBindTexture(GL_TEXTURE_2D, 0);
-  }
+  qw_glBindTexture(GL_TEXTURE_2D, temp_texture);
 
-  return status;
+  uint8_t white[] = { 0xff, 0xff, 0xff, 0xff };
+  qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA,
+                  GL_UNSIGNED_BYTE, white);
+
+  qw_glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
+                    ptrdiff_t height, vec4_t color,
+                    ptrdiff_t image_width, ptrdiff_t image_height,
+                    uint8_t const *image_data) {
+  assert(image_width > 0);
+  assert(image_height > 0);
+  assert(image_data != NULL);
+
+  if (image_width <= 0 || image_height <= 0 || image_data == NULL)
+    return;
+
+  vec_t const position[] = {
+    x,         y,          //
+    x + width, y,          //
+    x + width, y + height, //
+    x,         y,          //
+    x + width, y + height, //
+    x,         y + height  //
+  };
+
+  vec_t const texcoord[] = {
+    0.f, 0.f, //
+    1.f, 0.f, //
+    1.f, 1.f, //
+    0.f, 0.f, //
+    1.f, 1.f, //
+    0.f, 1.f  //
+  };
+
+  vec_t const color_[] = {
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3], //
+    color.v[0], color.v[1], color.v[2], color.v[3]  //
+  };
+
+  qw_glEnable(GL_BLEND);
+  qw_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
+  qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+  qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
+
+  qw_glEnableVertexAttribArray(0);
+  qw_glEnableVertexAttribArray(1);
+  qw_glEnableVertexAttribArray(2);
+
+  qw_glUniform3f(u_screen, (vec_t) screen_width,
+                 (vec_t) screen_height, 0.f);
+  qw_glUniform1i(u_texture, 0);
+
+  qw_glBindTexture(GL_TEXTURE_2D, temp_texture);
+
+  qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width,
+                  image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                  image_data);
+
+  qw_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
