@@ -258,8 +258,10 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
 
   im_enter();
   im_clear(vec4(0.f, 0.f, 0.f, 0.f));
-  im_draw_text(40, 80, 600, 40, vec4(1.f, 1.f, 1.f, .7f), 1, 0,
-               SZ("Quadwar, development version"));
+  str_t       text = SZ("Quadwar, development version");
+  text_area_t area = im_text_area(1, 0, text);
+  im_draw_text(40, 80, area.width * 5, area.height * 5,
+               vec4(1.f, 1.f, 1.f, .7f), 1, 0, text);
   im_render();
 
   time += ((vec_t) time_elapsed) / 1000.f;

@@ -714,14 +714,6 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
 #define LCD_SIZE \
   (LCD_CHAR_WIDTH * LCD_CHAR_HEIGHT * LCD_CHARS_X * LCD_CHARS_Y)
 
-text_area_t im_text_area(ptrdiff_t spacing, int is_monospace,
-                         kit_str_t text) {
-  text_area_t area = {
-    .width = 0, .height = 0, .top_line = 0, .bottom_line = 0
-  };
-  return area;
-}
-
 typedef struct {
   ptrdiff_t offset;
   ptrdiff_t left;
@@ -730,80 +722,103 @@ typedef struct {
   ptrdiff_t bottom;
 } char_info_t;
 
-void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
-                  ptrdiff_t height, vec4_t color, ptrdiff_t spacing,
-                  int is_monospace, kit_str_t text) {
-  static const uint64_t lcd[] = {
-    0xffe77bfe7fbfff3f, 0xfddd991ad73fdfff, 0xa9d0d73fdfffffc2,
-    0xff3feffffdc2fddc, 0xefe3f8e6fdff77ba, 0x9dfefdfa8b787f3f,
-    0xfdfd8d1affffee7f, 0x7fbfff3ff67f9ffe, 0xe739f7ffbfff7bfa,
-    0xcfffffff398661bc, 0x7ce6d6bdbd9bdf76, 0xd9dfb1addf76b77f,
-    0x2fabef76bee3bce6, 0xf776ddffdffe36ec, 0xcee3bce6f6edad0b,
-    0x7ce739ee73bcc639, 0xffffffffffffff7f, 0x0108c631cffffdff,
-    0x318e8b9d0a060c88, 0x63099a4f2ce738c6, 0x9c4f20e738ce3182,
-    0x202420ce40026201, 0x38c6319e6095984f, 0x8191619c9a4b2c67,
-    0x8b9c0a660c8f0108, 0xffffffffffffffff, 0xce738808c230ffff,
-    0x89b6318cfef3dcc1, 0xb18cfd77deddd573, 0xfbb7beeebb5549bc,
-    0xbef77b5549bbc190, 0x7506c9b6319cfff7, 0xe3b8b23cfff7befb,
-    0xfcfffff77ec36eae, 0x07f37cffffffffff, 0xbeef7ffffffffff3,
-    0xfdccf37cfb37ffff, 0x6d7b7aefce69beff, 0x621fb555baef7db7,
-    0xb555bcef79b4611f, 0xbaef75cf7d6b5adf, 0x75f7730cc33fb555,
-    0xffffffffcd559aef, 0xfffffffffff7ffcf, 0x07f3b9ffffffffff,
-    0xbdc2d673abbcd738, 0xd673ab1f66d667f7, 0x6bbcf6d66377bdde,
-    0xf63862afbee73955, 0x65b7bdfb76046bbb, 0xbdc396aee77cf6fe,
-    0xfffffffffefe67f7, 0x7f3b9ff
-  };
-  static const char_info_t info[] = {
-    { 0, 1, 1, 2, 1 },    { 5, 1, 2, 0, 0 },    { 10, 1, 1, 1, 1 },
-    { 15, 0, 0, 1, 1 },   { 20, 1, 1, 0, 0 },   { 25, 0, 0, 1, 1 },
-    { 30, 0, 0, 0, 0 },   { 35, 2, 2, 1, 1 },   { 40, 1, 2, 0, 0 },
-    { 45, 2, 1, 0, 0 },   { 50, 0, 1, 0, 1 },   { 55, 1, 1, 2, 1 },
-    { 60, 1, 2, 4, 0 },   { 65, 1, 1, 3, 1 },   { 70, 1, 2, 4, 1 },
-    { 75, 0, 2, 0, 0 },   { 560, 0, 1, 0, 1 },  { 565, 1, 1, 0, 1 },
-    { 570, 1, 1, 0, 1 },  { 575, 1, 1, 0, 1 },  { 580, 0, 1, 0, 1 },
-    { 585, 0, 1, 0, 1 },  { 590, 0, 1, 0, 1 },  { 595, 0, 1, 0, 1 },
-    { 600, 0, 1, 0, 1 },  { 605, 0, 1, 0, 1 },  { 610, 1, 2, 1, 1 },
-    { 615, 1, 2, 1, 0 },  { 620, 1, 1, 1, 1 },  { 625, 1, 1, 2, 1 },
-    { 630, 1, 1, 1, 1 },  { 635, 0, 1, 0, 0 },  { 1120, 0, 0, 0, 1 },
-    { 1125, 0, 0, 0, 1 }, { 1130, 0, 0, 0, 1 }, { 1135, 0, 0, 0, 1 },
-    { 1140, 0, 0, 0, 1 }, { 1145, 0, 0, 0, 1 }, { 1150, 0, 0, 0, 1 },
-    { 1155, 0, 0, 0, 1 }, { 1160, 0, 0, 0, 1 }, { 1165, 0, 1, 0, 1 },
-    { 1170, 0, 0, 0, 1 }, { 1175, 0, 1, 0, 1 }, { 1180, 0, 0, 0, 1 },
-    { 1185, 0, 0, 0, 1 }, { 1190, 0, 0, 0, 1 }, { 1195, 0, 0, 0, 1 },
-    { 1680, 0, 0, 0, 1 }, { 1685, 0, 0, 0, 0 }, { 1690, 0, 0, 0, 1 },
-    { 1695, 0, 0, 0, 1 }, { 1700, 0, 0, 0, 1 }, { 1705, 0, 0, 0, 1 },
-    { 1710, 0, 0, 0, 1 }, { 1715, 0, 0, 0, 1 }, { 1720, 0, 0, 0, 1 },
-    { 1725, 0, 0, 0, 1 }, { 1730, 0, 1, 0, 1 }, { 1735, 1, 2, 0, 0 },
-    { 1740, 1, 1, 0, 0 }, { 1745, 1, 2, 0, 0 }, { 1750, 0, 0, 0, 1 },
-    { 1755, 0, 0, 6, 0 }, { 2240, 2, 0, 0, 1 }, { 2245, 0, 1, 1, 1 },
-    { 2250, 0, 1, 1, 1 }, { 2255, 0, 1, 1, 1 }, { 2260, 0, 1, 1, 1 },
-    { 2265, 0, 1, 1, 1 }, { 2270, 1, 1, 1, 1 }, { 2275, 0, 1, 1, 0 },
-    { 2280, 1, 1, 1, 1 }, { 2285, 2, 2, 0, 1 }, { 2290, 1, 2, 0, 0 },
-    { 2295, 1, 1, 0, 1 }, { 2300, 1, 2, 0, 1 }, { 2305, 0, 0, 1, 1 },
-    { 2310, 1, 1, 1, 1 }, { 2315, 0, 1, 1, 1 }, { 2800, 0, 1, 1, 0 },
-    { 2805, 0, 1, 1, 0 }, { 2810, 1, 1, 1, 1 }, { 2815, 0, 1, 1, 1 },
-    { 2820, 1, 1, 1, 1 }, { 2825, 1, 1, 1, 1 }, { 2830, 0, 0, 1, 1 },
-    { 2835, 0, 0, 1, 1 }, { 2840, 0, 1, 1, 1 }, { 2845, 0, 1, 1, 1 },
-    { 2850, 0, 1, 1, 1 }, { 2855, 1, 1, 0, 0 }, { 2860, 2, 2, 0, 0 },
-    { 2865, 1, 1, 0, 0 }, { 2870, 0, 0, 2, 1 }, { 2875, 0, 0, 0, 0 }
-  };
+static const uint64_t lcd[] = {
+  0xffe77bfe7fbfff3f, 0xfddd991ad73fdfff, 0xa9d0d73fdfffffc2,
+  0xff3feffffdc2fddc, 0xefe3f8e6fdff77ba, 0x9dfefdfa8b787f3f,
+  0xfdfd8d1affffee7f, 0x7fbfff3ff67f9ffe, 0xe739f7ffbfff7bfa,
+  0xcfffffff398661bc, 0x7ce6d6bdbd9bdf76, 0xd9dfb1addf76b77f,
+  0x2fabef76bee3bce6, 0xf776ddffdffe36ec, 0xcee3bce6f6edad0b,
+  0x7ce739ee73bcc639, 0xffffffffffffff7f, 0x0108c631cffffdff,
+  0x318e8b9d0a060c88, 0x63099a4f2ce738c6, 0x9c4f20e738ce3182,
+  0x202420ce40026201, 0x38c6319e6095984f, 0x8191619c9a4b2c67,
+  0x8b9c0a660c8f0108, 0xffffffffffffffff, 0xce738808c230ffff,
+  0x89b6318cfef3dcc1, 0xb18cfd77deddd573, 0xfbb7beeebb5549bc,
+  0xbef77b5549bbc190, 0x7506c9b6319cfff7, 0xe3b8b23cfff7befb,
+  0xfcfffff77ec36eae, 0x07f37cffffffffff, 0xbeef7ffffffffff3,
+  0xfdccf37cfb37ffff, 0x6d7b7aefce69beff, 0x621fb555baef7db7,
+  0xb555bcef79b4611f, 0xbaef75cf7d6b5adf, 0x75f7730cc33fb555,
+  0xffffffffcd559aef, 0xfffffffffff7ffcf, 0x07f3b9ffffffffff,
+  0xbdc2d673abbcd738, 0xd673ab1f66d667f7, 0x6bbcf6d66377bdde,
+  0xf63862afbee73955, 0x65b7bdfb76046bbb, 0xbdc396aee77cf6fe,
+  0xfffffffffefe67f7, 0x7f3b9ff
+};
 
-  if (text.size == 0)
-    return;
+static const char_info_t info[] = {
+  { 0, 1, 1, 2, 1 },    { 5, 1, 2, 0, 0 },    { 10, 1, 1, 1, 1 },
+  { 15, 0, 0, 1, 1 },   { 20, 1, 1, 0, 0 },   { 25, 0, 0, 1, 1 },
+  { 30, 0, 0, 0, 0 },   { 35, 2, 2, 1, 1 },   { 40, 1, 2, 0, 0 },
+  { 45, 2, 1, 0, 0 },   { 50, 0, 1, 0, 1 },   { 55, 1, 1, 2, 1 },
+  { 60, 1, 2, 4, 0 },   { 65, 1, 1, 3, 1 },   { 70, 1, 2, 4, 1 },
+  { 75, 0, 2, 0, 0 },   { 560, 0, 1, 0, 1 },  { 565, 1, 1, 0, 1 },
+  { 570, 1, 1, 0, 1 },  { 575, 1, 1, 0, 1 },  { 580, 0, 1, 0, 1 },
+  { 585, 0, 1, 0, 1 },  { 590, 0, 1, 0, 1 },  { 595, 0, 1, 0, 1 },
+  { 600, 0, 1, 0, 1 },  { 605, 0, 1, 0, 1 },  { 610, 1, 2, 1, 1 },
+  { 615, 1, 2, 1, 0 },  { 620, 1, 1, 1, 1 },  { 625, 1, 1, 2, 1 },
+  { 630, 1, 1, 1, 1 },  { 635, 0, 1, 0, 0 },  { 1120, 0, 0, 0, 1 },
+  { 1125, 0, 0, 0, 1 }, { 1130, 0, 0, 0, 1 }, { 1135, 0, 0, 0, 1 },
+  { 1140, 0, 0, 0, 1 }, { 1145, 0, 0, 0, 1 }, { 1150, 0, 0, 0, 1 },
+  { 1155, 0, 0, 0, 1 }, { 1160, 0, 0, 0, 1 }, { 1165, 0, 1, 0, 1 },
+  { 1170, 0, 0, 0, 1 }, { 1175, 0, 1, 0, 1 }, { 1180, 0, 0, 0, 1 },
+  { 1185, 0, 0, 0, 1 }, { 1190, 0, 0, 0, 1 }, { 1195, 0, 0, 0, 1 },
+  { 1680, 0, 0, 0, 1 }, { 1685, 0, 0, 0, 0 }, { 1690, 0, 0, 0, 1 },
+  { 1695, 0, 0, 0, 1 }, { 1700, 0, 0, 0, 1 }, { 1705, 0, 0, 0, 1 },
+  { 1710, 0, 0, 0, 1 }, { 1715, 0, 0, 0, 1 }, { 1720, 0, 0, 0, 1 },
+  { 1725, 0, 0, 0, 1 }, { 1730, 0, 1, 0, 1 }, { 1735, 1, 2, 0, 0 },
+  { 1740, 1, 1, 0, 0 }, { 1745, 1, 2, 0, 0 }, { 1750, 0, 0, 0, 1 },
+  { 1755, 0, 0, 6, 0 }, { 2240, 2, 0, 0, 1 }, { 2245, 0, 1, 1, 1 },
+  { 2250, 0, 1, 1, 1 }, { 2255, 0, 1, 1, 1 }, { 2260, 0, 1, 1, 1 },
+  { 2265, 0, 1, 1, 1 }, { 2270, 1, 1, 1, 1 }, { 2275, 0, 1, 1, 0 },
+  { 2280, 1, 1, 1, 1 }, { 2285, 2, 2, 0, 1 }, { 2290, 1, 2, 0, 0 },
+  { 2295, 1, 1, 0, 1 }, { 2300, 1, 2, 0, 1 }, { 2305, 0, 0, 1, 1 },
+  { 2310, 1, 1, 1, 1 }, { 2315, 0, 1, 1, 1 }, { 2800, 0, 1, 1, 0 },
+  { 2805, 0, 1, 1, 0 }, { 2810, 1, 1, 1, 1 }, { 2815, 0, 1, 1, 1 },
+  { 2820, 1, 1, 1, 1 }, { 2825, 1, 1, 1, 1 }, { 2830, 0, 0, 1, 1 },
+  { 2835, 0, 0, 1, 1 }, { 2840, 0, 1, 1, 1 }, { 2845, 0, 1, 1, 1 },
+  { 2850, 0, 1, 1, 1 }, { 2855, 1, 1, 0, 0 }, { 2860, 2, 2, 0, 0 },
+  { 2865, 1, 1, 0, 0 }, { 2870, 0, 0, 2, 1 }, { 2875, 0, 0, 0, 0 }
+};
 
-  ptrdiff_t line_size = 0;
+static ptrdiff_t text_area_width(ptrdiff_t spacing, int is_monospace,
+                                 kit_str_t text) {
+  ptrdiff_t width = 0;
 
   for (ptrdiff_t i = 0; i < text.size; i++) {
     if (i > 0)
-      line_size += spacing;
+      width += spacing;
 
     ptrdiff_t c = text.values[i] - 32;
 
     if (c < 0 || c >= sizeof info / sizeof *info)
       c = (sizeof info / sizeof *info) - 1;
 
-    line_size += LCD_CHAR_WIDTH - info[c].left - info[c].right;
+    if (is_monospace)
+      width += LCD_CHAR_WIDTH;
+    else
+      width += LCD_CHAR_WIDTH - info[c].left - info[c].right;
   }
+
+  return width;
+}
+
+text_area_t im_text_area(ptrdiff_t spacing, int is_monospace,
+                         kit_str_t text) {
+  text_area_t const area = { .width = text_area_width(
+                                 spacing, is_monospace, text),
+                             .height      = LCD_CHAR_HEIGHT,
+                             .top_line    = 0,
+                             .bottom_line = 0 };
+
+  return area;
+}
+
+void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
+                  ptrdiff_t height, vec4_t color, ptrdiff_t spacing,
+                  int is_monospace, kit_str_t text) {
+  if (width <= 0 || height <= 0 || text.size == 0)
+    return;
+
+  ptrdiff_t const line_size = text_area_width(spacing, is_monospace,
+                                              text);
 
   uint8_t *pixels = (uint8_t *) kit_alloc_dispatch(
       ALLOC, KIT_ALLOCATE, line_size * LCD_CHAR_HEIGHT * 4, 0, NULL);
@@ -830,10 +845,17 @@ void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     if (c < 0 || c >= sizeof info / sizeof *info)
       c = (sizeof info / sizeof *info) - 1;
 
+    ptrdiff_t left, width;
+    if (is_monospace) {
+      left  = 0;
+      width = LCD_CHAR_WIDTH;
+    } else {
+      left  = info[c].left;
+      width = LCD_CHAR_WIDTH - left - info[c].right;
+    }
+
     ptrdiff_t const offset = info[c].offset;
-    ptrdiff_t const left   = info[c].left;
     ptrdiff_t const top    = info[c].top;
-    ptrdiff_t const width  = LCD_CHAR_WIDTH - left - info[c].right;
     ptrdiff_t const height = LCD_CHAR_HEIGHT - top - info[c].bottom;
 
     for (ptrdiff_t j = 0; j < height; j++)
