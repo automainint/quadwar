@@ -28,6 +28,7 @@ def main():
                      'glBufferData',
                      'glVertexAttribPointer',
                      'glEnableVertexAttribArray',
+                     'glDisableVertexAttribArray',
                      'glBindVertexArray',
                      'glDeleteBuffers',
                      'glDeleteVertexArrays',

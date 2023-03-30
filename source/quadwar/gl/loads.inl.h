@@ -19,6 +19,7 @@ LOAD_(qw_glDeleteShader, "glDeleteShader");
 LOAD_(qw_glDeleteTextures, "glDeleteTextures");
 LOAD_(qw_glDeleteVertexArrays, "glDeleteVertexArrays");
 LOAD_(qw_glDisable, "glDisable");
+LOAD_(qw_glDisableVertexAttribArray, "glDisableVertexAttribArray");
 LOAD_(qw_glDrawArrays, "glDrawArrays");
 LOAD_(qw_glEnable, "glEnable");
 LOAD_(qw_glEnableVertexAttribArray, "glEnableVertexAttribArray");

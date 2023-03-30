@@ -24,6 +24,7 @@ pfn_glDeleteShader qw_glDeleteShader = NULL;
 pfn_glDeleteTextures qw_glDeleteTextures = NULL;
 pfn_glDeleteVertexArrays qw_glDeleteVertexArrays = NULL;
 pfn_glDisable qw_glDisable = NULL;
+pfn_glDisableVertexAttribArray qw_glDisableVertexAttribArray = NULL;
 pfn_glDrawArrays qw_glDrawArrays = NULL;
 pfn_glEnable qw_glEnable = NULL;
 pfn_glEnableVertexAttribArray qw_glEnableVertexAttribArray = NULL;

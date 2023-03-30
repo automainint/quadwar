@@ -259,7 +259,7 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
   im_enter();
   im_clear(vec4(0.f, 0.f, 0.f, 0.f));
   char buf[64];
-  sprintf(buf, "FPS: %d", (int) fps);
+  snprintf(buf, 63, "FPS: %d", (int) fps);
   str_t       text = WRAP_BS(buf);
   text_area_t area = im_text_area(1, 0, text);
   im_draw_text(20, 20, area.width * 3, area.height * 3,

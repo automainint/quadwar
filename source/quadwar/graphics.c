@@ -550,6 +550,9 @@ void im_render(void) {
     1.f, 1.f, 1.f, 1.f, //
     1.f, 1.f, 1.f, 1.f  //
   };
+  (void) position;
+  (void) texcoord;
+  (void) color;
 
   qw_glBindVertexArray(0);
   qw_glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -575,6 +578,10 @@ void im_render(void) {
   qw_glDrawArrays(GL_TRIANGLES, 0, 6);
 
   qw_glBindTexture(GL_TEXTURE_2D, 0);
+
+  qw_glDisableVertexAttribArray(0);
+  qw_glDisableVertexAttribArray(1);
+  qw_glDisableVertexAttribArray(2);
 }
 
 void im_clear(vec4_t color) {
