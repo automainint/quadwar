@@ -242,7 +242,7 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
         scene.camera,
         vec3_mul(camera_forward, movement_factor * time_elapsed));
 
-  if (camera_normalization)
+  if (camera_normalization && camera_mode == 0)
     scene.camera = camera_normal_local(
         scene.camera, world_up, camera_normal_factor * time_elapsed);
 
@@ -259,7 +259,7 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
   im_enter();
   im_clear(vec4(0.f, 0.f, 0.f, 0.f));
   char buf[64];
-  snprintf(buf, 63, "FPS: %d", (int) fps);
+  snprintf(buf, 64, "FPS: %d", (int) fps);
   str_t       text = WRAP_BS(buf);
   text_area_t area = im_text_area(1, 0, text);
   im_draw_text(20, 20, area.width * 3, area.height * 3,

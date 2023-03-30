@@ -523,9 +523,8 @@ void im_enter(void) {
   qw_glUseProgram(flat_program);
 
   qw_glEnable(GL_BLEND);
-  qw_glBlendColor(1.f, 1.f, 1.f, 1.f);
-  qw_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
-                         GL_CONSTANT_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  qw_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE,
+                         GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void im_render(void) {
@@ -559,7 +558,7 @@ void im_render(void) {
   qw_glBindVertexArray(0);
   qw_glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  qw_glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  qw_glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
   qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
 
