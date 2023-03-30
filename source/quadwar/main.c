@@ -153,14 +153,10 @@ static void loop(void) {
   if (g_app.time_frame >= 100) {
     g_app.fps_v[g_app.fps_index] = g_app.frames;
     g_app.fps_index              = (g_app.fps_index + 1) % 10;
+    g_app.fps                    = 0;
     for (int i = 0; i < 10; i++) g_app.fps += g_app.fps_v[i];
-#ifndef __EMSCRIPTEN__
-    printf("FPS: %d\r", g_app.fps);
-    fflush(stdout);
-#endif
     g_app.frames = 0;
     g_app.time_frame -= 100;
-    g_app.fps = 0;
   }
 }
 
@@ -270,7 +266,7 @@ int main(int argc, char **argv) {
 
   SDL_Quit();
 
-  printf("\nBye\n");
+  printf("Bye\n");
 #endif
 
   return KIT_OK;

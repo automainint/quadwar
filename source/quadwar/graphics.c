@@ -510,17 +510,13 @@ void mesh_render(mesh_t *mesh, scene_t *scene) {
 
   qw_glBindVertexArray(mesh_array.values[mesh->id].vertex_array);
   qw_glDrawArrays(GL_TRIANGLES, 0, mesh_array.values[mesh->id].size);
-
-  qw_glBindVertexArray(0);
-  qw_glUseProgram(0);
-
-  { }
 }
 
 void im_enter(void) {
   if (graphics_init() != KIT_OK)
     return;
 
+  qw_glBindVertexArray(0);
   qw_glBindFramebuffer(GL_FRAMEBUFFER, flat_fbo);
 
   qw_glDisable(GL_DEPTH_TEST);
@@ -555,6 +551,7 @@ void im_render(void) {
     1.f, 1.f, 1.f, 1.f  //
   };
 
+  qw_glBindVertexArray(0);
   qw_glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   qw_glEnable(GL_BLEND);
