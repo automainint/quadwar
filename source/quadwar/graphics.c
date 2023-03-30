@@ -521,6 +521,11 @@ void im_enter(void) {
 
   qw_glDisable(GL_DEPTH_TEST);
   qw_glUseProgram(flat_program);
+
+  qw_glEnable(GL_BLEND);
+  qw_glBlendColor(1.f, 1.f, 1.f, 1.f);
+  qw_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
+                         GL_CONSTANT_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void im_render(void) {
@@ -550,15 +555,11 @@ void im_render(void) {
     1.f, 1.f, 1.f, 1.f, //
     1.f, 1.f, 1.f, 1.f  //
   };
-  (void) position;
-  (void) texcoord;
-  (void) color;
 
   qw_glBindVertexArray(0);
   qw_glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  qw_glEnable(GL_BLEND);
-  qw_glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  qw_glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -617,9 +618,6 @@ void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     color.v[0], color.v[1], color.v[2], color.v[3], //
     color.v[0], color.v[1], color.v[2], color.v[3]  //
   };
-
-  qw_glEnable(GL_BLEND);
-  qw_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -681,9 +679,6 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     color.v[0], color.v[1], color.v[2], color.v[3], //
     color.v[0], color.v[1], color.v[2], color.v[3]  //
   };
-
-  qw_glEnable(GL_BLEND);
-  qw_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
 

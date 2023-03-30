@@ -263,7 +263,7 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
   str_t       text = WRAP_BS(buf);
   text_area_t area = im_text_area(1, 0, text);
   im_draw_text(20, 20, area.width * 3, area.height * 3,
-               vec4(1.f, 1.f, 1.f, .7f), 1, 0, text);
+               vec4(1.f, 1.f, 1.f, .75f), 1, 0, text);
   im_render();
 
   time += ((vec_t) time_elapsed) / 1000.f;
