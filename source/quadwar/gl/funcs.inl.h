@@ -40,6 +40,7 @@ pfn_glGetShaderiv qw_glGetShaderiv = NULL;
 pfn_glGetString qw_glGetString = NULL;
 pfn_glGetUniformLocation qw_glGetUniformLocation = NULL;
 pfn_glLinkProgram qw_glLinkProgram = NULL;
+pfn_glPixelStorei qw_glPixelStorei = NULL;
 pfn_glProgramBinary qw_glProgramBinary = NULL;
 pfn_glShaderSource qw_glShaderSource = NULL;
 pfn_glTexImage2D qw_glTexImage2D = NULL;

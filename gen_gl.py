@@ -59,7 +59,8 @@ def main():
                      'glBindTexture',
                      'glTexImage2D',
                      'glTexImage3D',
-                     'glTexParameteri']
+                     'glTexParameteri',
+                     'glPixelStorei']
 
   folder = os.path.join('source', 'quadwar', 'gl')
   gl_folder = '.gen_gl'

@@ -35,6 +35,7 @@ LOAD_(qw_glGetShaderiv, "glGetShaderiv");
 LOAD_(qw_glGetString, "glGetString");
 LOAD_(qw_glGetUniformLocation, "glGetUniformLocation");
 LOAD_(qw_glLinkProgram, "glLinkProgram");
+LOAD_(qw_glPixelStorei, "glPixelStorei");
 LOAD_(qw_glProgramBinary, "glProgramBinary");
 LOAD_(qw_glShaderSource, "glShaderSource");
 LOAD_(qw_glTexImage2D, "glTexImage2D");

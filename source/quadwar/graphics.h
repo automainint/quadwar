@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "options.h"
 #include <kit/dynamic_array.h>
+#include <kit/string_ref.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +32,13 @@ typedef struct {
   vec3_t   light_position;
 } scene_t;
 
+typedef struct {
+  ptrdiff_t width;
+  ptrdiff_t height;
+  ptrdiff_t top_line;
+  ptrdiff_t bottom_line;
+} text_area_t;
+
 void graphics_rebuild_shaders(void);
 void graphics_reset_mesh_data(void);
 void graphics_viewport(int width, int height);
@@ -50,6 +58,12 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
                     ptrdiff_t height, vec4_t color,
                     ptrdiff_t image_width, ptrdiff_t image_height,
                     uint8_t const *image_data);
+
+text_area_t im_text_area(ptrdiff_t spacing, int is_monospace,
+                         kit_str_t text);
+void        im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
+                         ptrdiff_t height, vec4_t color, ptrdiff_t spacing,
+                         int is_monospace, kit_str_t text);
 
 #ifdef __cplusplus
 }

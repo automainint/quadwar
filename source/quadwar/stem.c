@@ -258,27 +258,8 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
 
   im_enter();
   im_clear(vec4(0.f, 0.f, 0.f, 0.f));
-  uint8_t pixels[] = {
-    0xff, 0x00, 0xff, 0xff, //
-    0,    0,    0,    0,    //
-    0xff, 0xff, 0x00, 0xff, //
-    0,    0,    0,    0,    //
-    0,    0,    0,    0,    //
-    0x00, 0xff, 0xff, 0xff, //
-    0,    0,    0,    0,    //
-    0x00, 0x00, 0xff, 0xff, //
-    0xff, 0x00, 0x00, 0xff, //
-    0,    0,    0,    0,    //
-    0x00, 0xff, 0x00, 0xff, //
-    0,    0,    0,    0,    //
-    0,    0,    0,    0,    //
-    0x00, 0xff, 0xff, 0xff, //
-    0,    0,    0,    0,    //
-    0x00, 0xff, 0x00, 0xff  //
-  };
-  im_draw_pixels(100, 100, 300, 200, vec4(1.f, 1.f, 1.f, .7f), 4, 4,
-                 pixels);
-  im_draw_rect(450, 100, 150, 200, vec4(.4f, .5f, .6f, .5f));
+  im_draw_text(40, 80, 600, 40, vec4(1.f, 1.f, 1.f, .7f), 1, 0,
+               SZ("Quadwar, development version"));
   im_render();
 
   time += ((vec_t) time_elapsed) / 1000.f;

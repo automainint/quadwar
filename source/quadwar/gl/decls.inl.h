@@ -40,6 +40,7 @@ typedef void (GL_API *pfn_glGetShaderiv)(GLuint shader, GLenum pname, GLint *par
 typedef const GLubyte *(GL_API *pfn_glGetString)(GLenum name);
 typedef GLint (GL_API *pfn_glGetUniformLocation)(GLuint program, const GLchar *name);
 typedef void (GL_API *pfn_glLinkProgram)(GLuint program);
+typedef void (GL_API *pfn_glPixelStorei)(GLenum pname, GLint param);
 typedef void (GL_API *pfn_glProgramBinary)(GLuint program, GLenum binaryFormat, const void *binary, GLsizei length);
 typedef void (GL_API *pfn_glShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
 typedef void (GL_API *pfn_glTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels);
@@ -94,6 +95,7 @@ extern pfn_glGetShaderiv qw_glGetShaderiv;
 extern pfn_glGetString qw_glGetString;
 extern pfn_glGetUniformLocation qw_glGetUniformLocation;
 extern pfn_glLinkProgram qw_glLinkProgram;
+extern pfn_glPixelStorei qw_glPixelStorei;
 extern pfn_glProgramBinary qw_glProgramBinary;
 extern pfn_glShaderSource qw_glShaderSource;
 extern pfn_glTexImage2D qw_glTexImage2D;

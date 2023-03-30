@@ -118,7 +118,8 @@ typedef struct {
   GLsizei size;
 } mesh_internal_t;
 
-static int is_ready = 0;
+static kit_allocator_t ALLOC;
+static int             is_ready = 0;
 
 static GLuint solid_vertex;
 static GLuint solid_fragment;
@@ -158,20 +159,22 @@ static void graphics_shaders_cleanup(void) {
   qw_glDeleteShader(flat_fragment);
 }
 
-static string_t get_cache_folder(kit_allocator_t alloc) {
-  string_t s      = path_cache(alloc);
-  string_t result = path_join(WRAP_STR(s), SZ("quadwar"), alloc);
+static string_t get_cache_folder(void) {
+  string_t s      = path_cache(ALLOC);
+  string_t result = path_join(WRAP_STR(s), SZ("quadwar"), ALLOC);
   DA_DESTROY(s);
   return result;
 }
 
-static kit_status_t graphics_load_shader(
-    int rebuild, str_t cache_folder, str_t name, GLuint *vert,
-    GLuint *frag, GLuint *prog, char const *src_vert,
-    char const *src_frag, kit_allocator_t alloc) {
+static kit_status_t graphics_load_shader(int   rebuild,
+                                         str_t cache_folder,
+                                         str_t name, GLuint *vert,
+                                         GLuint *frag, GLuint *prog,
+                                         char const *src_vert,
+                                         char const *src_frag) {
   kit_status_t result = KIT_OK;
 
-  string_t cache_file = path_join(cache_folder, name, alloc);
+  string_t cache_file = path_join(cache_folder, name, ALLOC);
   FILE    *in         = NULL;
 
   if (!rebuild)
@@ -186,7 +189,7 @@ static kit_status_t graphics_load_shader(
     fread(&binary_format, 4, 1, in);
 
     binary_data = (uint8_t *) kit_alloc_dispatch(
-        alloc, KIT_ALLOCATE, binary_size, 0, NULL);
+        ALLOC, KIT_ALLOCATE, binary_size, 0, NULL);
 
     if (binary_data != NULL) {
       fread(binary_data, 1, binary_size, in);
@@ -198,7 +201,7 @@ static kit_status_t graphics_load_shader(
       qw_glProgramBinary(*prog, (GLenum) binary_format, binary_data,
                          binary_size);
 
-      kit_alloc_dispatch(alloc, KIT_DEALLOCATE, 0, 0, binary_data);
+      kit_alloc_dispatch(ALLOC, KIT_DEALLOCATE, 0, 0, binary_data);
     }
 
     fclose(in);
@@ -266,7 +269,7 @@ static kit_status_t graphics_load_shader(
                           &binary_size);
 
         binary_data = (uint8_t *) kit_alloc_dispatch(
-            alloc, KIT_ALLOCATE, binary_size, 0, NULL);
+            ALLOC, KIT_ALLOCATE, binary_size, 0, NULL);
 
         if (binary_data != NULL) {
           int written;
@@ -281,7 +284,7 @@ static kit_status_t graphics_load_shader(
           fwrite(&binary_format, 4, 1, out);
           fwrite(binary_data, 1, written, out);
 
-          kit_alloc_dispatch(alloc, KIT_DEALLOCATE, 0, 0,
+          kit_alloc_dispatch(ALLOC, KIT_DEALLOCATE, 0, 0,
                              binary_data);
         }
 
@@ -299,20 +302,18 @@ static kit_status_t graphics_load_shader(
 static kit_status_t graphics_shaders_load(int rebuild) {
   kit_status_t result = KIT_OK;
 
-  kit_allocator_t alloc = kit_alloc_default();
-
-  string_t cache_folder = get_cache_folder(alloc);
+  string_t cache_folder = get_cache_folder();
   file_create_folder_recursive(WRAP_STR(cache_folder));
 
-  graphics_load_shader(
-      rebuild, WRAP_STR(cache_folder), SZ("shader_solid.bin"),
-      &solid_vertex, &solid_fragment, &solid_program,
-      source_solid_vertex, source_solid_fragment, alloc);
+  graphics_load_shader(rebuild, WRAP_STR(cache_folder),
+                       SZ("shader_solid.bin"), &solid_vertex,
+                       &solid_fragment, &solid_program,
+                       source_solid_vertex, source_solid_fragment);
 
-  graphics_load_shader(
-      rebuild, WRAP_STR(cache_folder), SZ("shader_flat.bin"),
-      &flat_vertex, &flat_fragment, &flat_program, source_flat_vertex,
-      source_flat_fragment, alloc);
+  graphics_load_shader(rebuild, WRAP_STR(cache_folder),
+                       SZ("shader_flat.bin"), &flat_vertex,
+                       &flat_fragment, &flat_program,
+                       source_flat_vertex, source_flat_fragment);
 
   DA_DESTROY(cache_folder);
 
@@ -339,6 +340,8 @@ static kit_status_t graphics_init(void) {
     return KIT_OK;
 
   is_ready = 1;
+
+  ALLOC = kit_alloc_default();
 
   qw_glGenFramebuffers(1, &flat_fbo);
   qw_glGenTextures(1, &flat_texture);
@@ -701,3 +704,83 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
   qw_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+#define LCD_CHAR_WIDTH 5
+#define LCD_CHAR_HEIGHT 7
+#define LCD_CHARS_X 16
+#define LCD_CHARS_Y 6
+#define LCD_CHAR_COUNT (LCD_CHARS_X * LCD_CHARS_Y)
+#define LCD_WIDTH (LCD_CHAR_WIDTH * LCD_CHARS_X)
+#define LCD_HEIGHT (LCD_CHAR_HEIGHT * LCD_CHARS_Y)
+#define LCD_SIZE \
+  (LCD_CHAR_WIDTH * LCD_CHAR_HEIGHT * LCD_CHARS_X * LCD_CHARS_Y)
+
+text_area_t im_text_area(ptrdiff_t spacing, int is_monospace,
+                         kit_str_t text) {
+  text_area_t area = {
+    .width = 0, .height = 0, .top_line = 0, .bottom_line = 0
+  };
+  return area;
+}
+void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
+                  ptrdiff_t height, vec4_t color, ptrdiff_t spacing,
+                  int is_monospace, kit_str_t text) {
+  static uint64_t lcd[] = {
+    0xffe77bfe7fbfff3f, 0xfddd991ad73fdfff, 0xa9d0d73fdfffffc2,
+    0xff3feffffdc2fddc, 0xefe3f8e6fdff77ba, 0x9dfefdfa8b787f3f,
+    0xfdfd8d1affffee7f, 0x7fbfff3ff67f9ffe, 0xe739f7ffbfff7bfa,
+    0xcfffffff398661bc, 0x7ce6d6bdbd9bdf76, 0xd9dfb1addf76b77f,
+    0x2fabef76bee3bce6, 0xf776ddffdffe36ec, 0xcee3bce6f6edad0b,
+    0x7ce739ee73bcc639, 0xffffffffffffff7f, 0x0108c631cffffdff,
+    0x318e8b9d0a060c88, 0x63099a4f2ce738c6, 0x9c4f20e738ce3182,
+    0x202420ce40026201, 0x38c6319e6095984f, 0x8191619c9a4b2c67,
+    0x8b9c0a660c8f0108, 0xffffffffffffffff, 0xce738808c230ffff,
+    0x89b6318cfef3dcc1, 0xb18cfd77deddd573, 0xfbb7beeebb5549bc,
+    0xbef77b5549bbc190, 0x7506c9b6319cfff7, 0xe3b8b23cfff7befb,
+    0xfcfffff77ec36eae, 0x07f37cffffffffff, 0xbeef7ffffffffff3,
+    0xfdccf37cfb37ffff, 0x6d7b7aefce69beff, 0x621fb555baef7db7,
+    0xb555bcef79b4611f, 0xbaef75cf7d6b5adf, 0x75f7730cc33fb555,
+    0xffffffffcd559aef, 0xfffffffffff7ffcf, 0x07f3b9ffffffffff,
+    0xbdc2d673abbcd738, 0xd673ab1f66d667f7, 0x6bbcf6d66377bdde,
+    0xf63862afbee73955, 0x65b7bdfb76046bbb, 0xbdc396aee77cf6fe,
+    0xfffffffffefe67f7, 0x7f3b9ff
+  };
+
+  if (text.size == 0)
+    return;
+
+  ptrdiff_t const line_size = LCD_CHAR_WIDTH * text.size +
+                              spacing * (text.size - 1);
+
+  uint8_t *pixels = (uint8_t *) kit_alloc_dispatch(
+      ALLOC, KIT_ALLOCATE, line_size * LCD_CHAR_HEIGHT * 4, 0, NULL);
+
+  if (pixels == NULL)
+    return;
+
+  for (ptrdiff_t j = 0; j < LCD_CHAR_HEIGHT; ++j)
+    for (ptrdiff_t i = 0; i < line_size; ++i) {
+      ptrdiff_t const n = (j * line_size + i) * 4;
+      char const c = text.values[i / (LCD_CHAR_WIDTH + spacing)] - 32;
+
+      pixels[n]     = 0xff;
+      pixels[n + 1] = 0xff;
+      pixels[n + 2] = 0xff;
+
+      ptrdiff_t const char_x = i % (LCD_CHAR_WIDTH + spacing);
+
+      if (char_x >= LCD_CHAR_WIDTH || c < 0 || c >= LCD_CHAR_COUNT) {
+        pixels[n + 3] = 0;
+      } else {
+        ptrdiff_t const x = (c % LCD_CHARS_X) * LCD_CHAR_WIDTH +
+                            char_x;
+        ptrdiff_t const y = (c / LCD_CHARS_X) * LCD_CHAR_HEIGHT + j;
+        ptrdiff_t const k = y * LCD_WIDTH + x;
+
+        pixels[n + 3] = (lcd[k / 64] & (1ull << (k % 64))) ? 0 : 0xff;
+      }
+    }
+  im_draw_pixels(x, y, width, height, color, line_size,
+                 LCD_CHAR_HEIGHT, pixels);
+
+  kit_alloc_dispatch(ALLOC, KIT_DEALLOCATE, 0, 0, pixels);
+}
