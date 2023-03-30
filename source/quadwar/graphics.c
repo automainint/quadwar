@@ -721,10 +721,19 @@ text_area_t im_text_area(ptrdiff_t spacing, int is_monospace,
   };
   return area;
 }
+
+typedef struct {
+  ptrdiff_t offset;
+  ptrdiff_t left;
+  ptrdiff_t right;
+  ptrdiff_t top;
+  ptrdiff_t bottom;
+} char_info_t;
+
 void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
                   ptrdiff_t height, vec4_t color, ptrdiff_t spacing,
                   int is_monospace, kit_str_t text) {
-  static uint64_t lcd[] = {
+  static const uint64_t lcd[] = {
     0xffe77bfe7fbfff3f, 0xfddd991ad73fdfff, 0xa9d0d73fdfffffc2,
     0xff3feffffdc2fddc, 0xefe3f8e6fdff77ba, 0x9dfefdfa8b787f3f,
     0xfdfd8d1affffee7f, 0x7fbfff3ff67f9ffe, 0xe739f7ffbfff7bfa,
@@ -744,12 +753,57 @@ void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     0xf63862afbee73955, 0x65b7bdfb76046bbb, 0xbdc396aee77cf6fe,
     0xfffffffffefe67f7, 0x7f3b9ff
   };
+  static const char_info_t info[] = {
+    { 0, 1, 1, 2, 1 },    { 5, 1, 2, 0, 0 },    { 10, 1, 1, 1, 1 },
+    { 15, 0, 0, 1, 1 },   { 20, 1, 1, 0, 0 },   { 25, 0, 0, 1, 1 },
+    { 30, 0, 0, 0, 0 },   { 35, 2, 2, 1, 1 },   { 40, 1, 2, 0, 0 },
+    { 45, 2, 1, 0, 0 },   { 50, 0, 1, 0, 1 },   { 55, 1, 1, 2, 1 },
+    { 60, 1, 2, 4, 0 },   { 65, 1, 1, 3, 1 },   { 70, 1, 2, 4, 1 },
+    { 75, 0, 2, 0, 0 },   { 560, 0, 1, 0, 1 },  { 565, 1, 1, 0, 1 },
+    { 570, 1, 1, 0, 1 },  { 575, 1, 1, 0, 1 },  { 580, 0, 1, 0, 1 },
+    { 585, 0, 1, 0, 1 },  { 590, 0, 1, 0, 1 },  { 595, 0, 1, 0, 1 },
+    { 600, 0, 1, 0, 1 },  { 605, 0, 1, 0, 1 },  { 610, 1, 2, 1, 1 },
+    { 615, 1, 2, 1, 0 },  { 620, 1, 1, 1, 1 },  { 625, 1, 1, 2, 1 },
+    { 630, 1, 1, 1, 1 },  { 635, 0, 1, 0, 0 },  { 1120, 0, 0, 0, 1 },
+    { 1125, 0, 0, 0, 1 }, { 1130, 0, 0, 0, 1 }, { 1135, 0, 0, 0, 1 },
+    { 1140, 0, 0, 0, 1 }, { 1145, 0, 0, 0, 1 }, { 1150, 0, 0, 0, 1 },
+    { 1155, 0, 0, 0, 1 }, { 1160, 0, 0, 0, 1 }, { 1165, 0, 1, 0, 1 },
+    { 1170, 0, 0, 0, 1 }, { 1175, 0, 1, 0, 1 }, { 1180, 0, 0, 0, 1 },
+    { 1185, 0, 0, 0, 1 }, { 1190, 0, 0, 0, 1 }, { 1195, 0, 0, 0, 1 },
+    { 1680, 0, 0, 0, 1 }, { 1685, 0, 0, 0, 0 }, { 1690, 0, 0, 0, 1 },
+    { 1695, 0, 0, 0, 1 }, { 1700, 0, 0, 0, 1 }, { 1705, 0, 0, 0, 1 },
+    { 1710, 0, 0, 0, 1 }, { 1715, 0, 0, 0, 1 }, { 1720, 0, 0, 0, 1 },
+    { 1725, 0, 0, 0, 1 }, { 1730, 0, 1, 0, 1 }, { 1735, 1, 2, 0, 0 },
+    { 1740, 1, 1, 0, 0 }, { 1745, 1, 2, 0, 0 }, { 1750, 0, 0, 0, 1 },
+    { 1755, 0, 0, 6, 0 }, { 2240, 2, 0, 0, 1 }, { 2245, 0, 1, 1, 1 },
+    { 2250, 0, 1, 1, 1 }, { 2255, 0, 1, 1, 1 }, { 2260, 0, 1, 1, 1 },
+    { 2265, 0, 1, 1, 1 }, { 2270, 1, 1, 1, 1 }, { 2275, 0, 1, 1, 0 },
+    { 2280, 1, 1, 1, 1 }, { 2285, 2, 2, 0, 1 }, { 2290, 1, 2, 0, 0 },
+    { 2295, 1, 1, 0, 1 }, { 2300, 1, 2, 0, 1 }, { 2305, 0, 0, 1, 1 },
+    { 2310, 1, 1, 1, 1 }, { 2315, 0, 1, 1, 1 }, { 2800, 0, 1, 1, 0 },
+    { 2805, 0, 1, 1, 0 }, { 2810, 1, 1, 1, 1 }, { 2815, 0, 1, 1, 1 },
+    { 2820, 1, 1, 1, 1 }, { 2825, 1, 1, 1, 1 }, { 2830, 0, 0, 1, 1 },
+    { 2835, 0, 0, 1, 1 }, { 2840, 0, 1, 1, 1 }, { 2845, 0, 1, 1, 1 },
+    { 2850, 0, 1, 1, 1 }, { 2855, 1, 1, 0, 0 }, { 2860, 2, 2, 0, 0 },
+    { 2865, 1, 1, 0, 0 }, { 2870, 0, 0, 2, 1 }, { 2875, 0, 0, 0, 0 }
+  };
 
   if (text.size == 0)
     return;
 
-  ptrdiff_t const line_size = LCD_CHAR_WIDTH * text.size +
-                              spacing * (text.size - 1);
+  ptrdiff_t line_size = 0;
+
+  for (ptrdiff_t i = 0; i < text.size; i++) {
+    if (i > 0)
+      line_size += spacing;
+
+    ptrdiff_t c = text.values[i] - 32;
+
+    if (c < 0 || c >= sizeof info / sizeof *info)
+      c = (sizeof info / sizeof *info) - 1;
+
+    line_size += LCD_CHAR_WIDTH - info[c].left - info[c].right;
+  }
 
   uint8_t *pixels = (uint8_t *) kit_alloc_dispatch(
       ALLOC, KIT_ALLOCATE, line_size * LCD_CHAR_HEIGHT * 4, 0, NULL);
@@ -757,28 +811,45 @@ void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
   if (pixels == NULL)
     return;
 
-  for (ptrdiff_t j = 0; j < LCD_CHAR_HEIGHT; ++j)
-    for (ptrdiff_t i = 0; i < line_size; ++i) {
-      ptrdiff_t const n = (j * line_size + i) * 4;
-      char const c = text.values[i / (LCD_CHAR_WIDTH + spacing)] - 32;
+  for (ptrdiff_t i = 0; i < line_size * LCD_CHAR_HEIGHT; i++) {
+    pixels[i * 4]     = 0xff;
+    pixels[i * 4 + 1] = 0xff;
+    pixels[i * 4 + 2] = 0xff;
+    pixels[i * 4 + 3] = 0;
+  }
 
-      pixels[n]     = 0xff;
-      pixels[n + 1] = 0xff;
-      pixels[n + 2] = 0xff;
+  ptrdiff_t total_width = 0;
 
-      ptrdiff_t const char_x = i % (LCD_CHAR_WIDTH + spacing);
+  for (ptrdiff_t char_index = 0; char_index < text.size;
+       char_index++) {
+    if (char_index > 0)
+      total_width += spacing;
 
-      if (char_x >= LCD_CHAR_WIDTH || c < 0 || c >= LCD_CHAR_COUNT) {
-        pixels[n + 3] = 0;
-      } else {
-        ptrdiff_t const x = (c % LCD_CHARS_X) * LCD_CHAR_WIDTH +
-                            char_x;
-        ptrdiff_t const y = (c / LCD_CHARS_X) * LCD_CHAR_HEIGHT + j;
-        ptrdiff_t const k = y * LCD_WIDTH + x;
+    ptrdiff_t c = text.values[char_index] - 32;
 
-        pixels[n + 3] = (lcd[k / 64] & (1ull << (k % 64))) ? 0 : 0xff;
+    if (c < 0 || c >= sizeof info / sizeof *info)
+      c = (sizeof info / sizeof *info) - 1;
+
+    ptrdiff_t const offset = info[c].offset;
+    ptrdiff_t const left   = info[c].left;
+    ptrdiff_t const top    = info[c].top;
+    ptrdiff_t const width  = LCD_CHAR_WIDTH - left - info[c].right;
+    ptrdiff_t const height = LCD_CHAR_HEIGHT - top - info[c].bottom;
+
+    for (ptrdiff_t j = 0; j < height; j++)
+      for (ptrdiff_t i = 0; i < width; i++) {
+        ptrdiff_t const k = offset + (top + j) * LCD_WIDTH + left + i;
+        if ((lcd[k / 64] & (1ull << (k % 64))) != 0)
+          continue;
+        ptrdiff_t const n = ((j + top) * line_size + total_width +
+                             i) *
+                            4;
+        pixels[n + 3] = 0xff;
       }
-    }
+
+    total_width += width;
+  }
+
   im_draw_pixels(x, y, width, height, color, line_size,
                  LCD_CHAR_HEIGHT, pixels);
 
