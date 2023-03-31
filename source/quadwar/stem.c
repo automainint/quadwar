@@ -1,6 +1,7 @@
 #include "stem.h"
 
 #include "graphics.h"
+#include "ui.h"
 #include <kit/allocator.h>
 #include <kit/mersenne_twister_64.h>
 #include <stdio.h>
@@ -25,6 +26,7 @@ static int camera_normalization = 1;
 
 static scene_t scene;
 static mesh_t  world;
+static ui_t    ui;
 
 enum { MAP_SIZE_X = 20, MAP_SIZE_Y = 20 };
 
@@ -37,6 +39,8 @@ void qw_down(int const key) {
   is_down[key] = 1;
 
   switch (key) {
+    case QW_KEY_BUTTON_LEFT: ui_press(&ui); break;
+
     case QW_KEY_RETURN:
       printf("Rebuild shaders\n");
       graphics_rebuild_shaders();
@@ -57,10 +61,21 @@ void qw_down(int const key) {
 
 void qw_up(int const key) {
   is_down[key] = 0;
+
+  switch (key) {
+    case QW_KEY_BUTTON_LEFT: ui_unpress(&ui); break;
+
+    default:;
+  }
 }
 
 void qw_motion(int const x, int const y, int const delta_x,
                int const delta_y) {
+  ui_motion(&ui, x, y);
+
+  if (ui.is_captured)
+    return;
+
   if (is_down[QW_KEY_BUTTON_LEFT]) {
     switch (camera_mode) {
       case 0:
@@ -128,6 +143,47 @@ void qw_init(void) {
   mt64_state_t mt64;
   mt64_init(&mt64, 31415);
   mt64_rotate(&mt64);
+
+  ui_init(&ui, kit_alloc_default());
+  DA_RESIZE(ui.widgets, 2);
+  if (ui.widgets.size != 2) {
+    printf("Bad alloc.\n");
+    return;
+  }
+
+  memset(ui.widgets.values, 0,
+         ui.widgets.size * sizeof *ui.widgets.values);
+
+  ui.widgets.values[0].is_visible = 1;
+  ui.widgets.values[0].is_enabled = 1;
+  ui.widgets.values[0].x          = 40;
+  ui.widgets.values[0].y          = 40;
+  ui.widgets.values[0].width      = 0;
+  ui.widgets.values[0].height     = 0;
+  ui.widgets.values[0].type       = UI_TEXT;
+
+  DA_INIT(ui.widgets.values[0].text, 20, kit_alloc_default());
+  if (ui.widgets.values[0].text.size != 20) {
+    printf("Bad alloc.\n");
+    return;
+  }
+  DA_RESIZE(ui.widgets.values[0].text, 0);
+
+  ui.widgets.values[1].is_visible = 1;
+  ui.widgets.values[1].is_enabled = 1;
+  ui.widgets.values[1].x          = 300;
+  ui.widgets.values[1].y          = 40;
+  ui.widgets.values[1].width      = 200;
+  ui.widgets.values[1].height     = 60;
+  ui.widgets.values[1].type       = UI_BUTTON;
+
+  DA_INIT(ui.widgets.values[1].text, 6, kit_alloc_default());
+  if (ui.widgets.values[1].text.size != 6) {
+    printf("Bad alloc.\n");
+    return;
+  }
+
+  memcpy(ui.widgets.values[1].text.values, "Button", 6);
 
   mesh_init(&world, kit_alloc_default());
   DA_RESIZE(world.data.vertices, MAP_SIZE_X * MAP_SIZE_Y * 6);
@@ -210,6 +266,9 @@ void qw_init(void) {
 }
 
 void qw_cleanup(void) {
+  ui_destroy(&ui);
+  mesh_destroy(&world);
+
   graphics_cleanup();
 }
 
@@ -246,25 +305,30 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
     scene.camera = camera_normal_local(
         scene.camera, world_up, camera_normal_factor * time_elapsed);
 
-  graphics_clear(back_color);
-
-  vec_t const hue = time / 30;
+  vec_t const hue = time / 5;
 
   color = lch_to_rgb(
-      vec3(47.f, 47.f, (2.f * M_PI) * (hue - floorf(hue))));
+      vec3(50.f, 50.f, (2.f * M_PI) * (hue - floorf(hue))));
 
   world.color = color;
+
+  graphics_clear(back_color);
+  graphics_mode(GRAPHICS_MESH);
+
   mesh_render(&world, &scene);
 
-  im_enter();
-  im_clear(vec4(0.f, 0.f, 0.f, 0.f));
-  char buf[64];
-  snprintf(buf, 64, "FPS: %d", (int) fps);
-  str_t       text = WRAP_BS(buf);
-  text_area_t area = im_text_area(1, 0, text);
-  im_draw_text(20, 20, area.width * 3, area.height * 3,
-               vec4(1.f, 1.f, 1.f, .75f), 1, 0, text);
-  im_render();
+  DA_RESIZE(ui.widgets.values[0].text, 20);
+  snprintf(ui.widgets.values[0].text.values, 20, "FPS: %d",
+           (int) fps);
+  DA_RESIZE(ui.widgets.values[0].text,
+            strlen(ui.widgets.values[0].text.values));
+  str_t       text            = WRAP_STR(ui.widgets.values[0].text);
+  text_area_t area            = im_text_area(1, 0, text);
+  ui.widgets.values[0].width  = area.width * ui.text_size;
+  ui.widgets.values[0].height = area.height * ui.text_size;
+
+  graphics_mode(GRAPHICS_IMMEDIATE);
+  ui_render(&ui);
 
   time += ((vec_t) time_elapsed) / 1000.f;
 

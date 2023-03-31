@@ -482,12 +482,10 @@ static mat4_t mat4_move(vec3_t const offset) {
   vec_t const y = offset.v[1];
   vec_t const z = offset.v[2];
 
-  mat4_t const m = { { 1.f, 0.f, 0.f, 0.f, //
-                       0.f, 1.f, 0.f, 0.f, //
-                       0.f, 0.f, 1.f, 0.f, //
-                       x, y, z, 1.f } };
-
-  return m;
+  return mat4(1.f, 0.f, 0.f, 0.f, //
+              0.f, 1.f, 0.f, 0.f, //
+              0.f, 0.f, 1.f, 0.f, //
+              x, y, z, 1.f);
 }
 
 static mat4_t mat4_scale(vec3_t const scale) {
@@ -495,12 +493,10 @@ static mat4_t mat4_scale(vec3_t const scale) {
   vec_t const y = scale.v[1];
   vec_t const z = scale.v[2];
 
-  mat4_t const m = { { x, 0.f, 0.f, 0.f, //
-                       0.f, y, 0.f, 0.f, //
-                       0.f, 0.f, z, 0.f, //
-                       0.f, 0.f, 0.f, 1.f } };
-
-  return m;
+  return mat4(x, 0.f, 0.f, 0.f, //
+              0.f, y, 0.f, 0.f, //
+              0.f, 0.f, z, 0.f, //
+              0.f, 0.f, 0.f, 1.f);
 }
 
 static mat4_t mat4_frustum(vec_t const left, vec_t const right,
@@ -511,24 +507,22 @@ static mat4_t mat4_frustum(vec_t const left, vec_t const right,
   vec_t const t2 = top - bottom;
   vec_t const t3 = zfar - znear;
 
-  mat4_t const m = { { t0 / t1,              //
-                       0.f,                  //
-                       0.f,                  //
-                       0.f,                  //
-                       0.f,                  //
-                       t0 / t2,              //
-                       0.f,                  //
-                       0.f,                  //
-                       (right + left) / t1,  //
-                       (top + bottom) / t2,  //
-                       (-zfar - znear) / t3, //
-                       -1.f,                 //
-                       0.f,                  //
-                       0.f,                  //
-                       (-t0 * zfar) / t3,    //
-                       0.f } };
-
-  return m;
+  return mat4(t0 / t1,              //
+              0.f,                  //
+              0.f,                  //
+              0.f,                  //
+              0.f,                  //
+              t0 / t2,              //
+              0.f,                  //
+              0.f,                  //
+              (right + left) / t1,  //
+              (top + bottom) / t2,  //
+              (-zfar - znear) / t3, //
+              -1.f,                 //
+              0.f,                  //
+              0.f,                  //
+              (-t0 * zfar) / t3,    //
+              0.f);
 }
 
 static mat4_t mat4_perspective(vec_t const fovy,
@@ -600,7 +594,6 @@ static vec3_t rgb_to_xyz(vec3_t const rgb) {
   vec_t green = rgb.v[1];
   vec_t blue  = rgb.v[2];
 
-  //  Gamma-correction
   /*
   if (red > 0.04045f)
     red = vec_pow(((red + 0.055f) / 1.055f), 2.4f);
@@ -627,31 +620,34 @@ static vec3_t rgb_to_xyz(vec3_t const rgb) {
               red * 0.0193f + green * 0.1192f + blue * 0.9505f);
 }
 
-static vec3_t xyz_to_lab(vec3_t const xyz) {
-  vec_t x = (xyz.v[0] / M_COLOR_REF_X);
-  vec_t y = (xyz.v[1] / M_COLOR_REF_Y);
-  vec_t z = (xyz.v[2] / M_COLOR_REF_Z);
+static vec3_t xyz_to_rgb(vec3_t const xyz) {
+  vec_t const x = xyz.v[0] / 100.f;
+  vec_t const y = xyz.v[1] / 100.f;
+  vec_t const z = xyz.v[2] / 100.f;
 
-  if (x > 0.008856f)
-    x = vec_pow(x, (1.f / 3.f));
+  vec_t red   = x * 3.2406f + (y * -1.5372f) + z * (-0.4986f);
+  vec_t green = x * (-0.9689f) + y * 1.8758f + z * 0.0415f;
+  vec_t blue  = x * 0.0557f + y * (-0.2040f) + z * 1.0570f;
+
+  /*
+  if (red > 0.0031308f)
+    red = 1.055f * vec_pow(red, (1.0f / 2.4)) - 0.055f;
   else
-    x = (7.787f * x) + (16.f / 116.f);
+    red = 12.92f * red;
 
-  if (y > 0.008856f)
-    y = vec_pow(y, (1.f / 3.f));
+  if (green > 0.0031308f)
+    green = 1.055f * vec_pow(green, (1.0f / 2.4)) - 0.055f;
   else
-    y = (7.787f * y) + (16.f / 116.f);
+    green = 12.92f * green;
 
-  if (z > 0.008856f)
-    z = vec_pow(z, (1.f / 3.f));
+  if (blue > 0.0031308f)
+    blue = 1.055f * vec_pow(blue, (1.0f / 2.4)) - 0.055f;
   else
-    z = (7.787f * z) + (16.f / 116.f);
+    blue = 12.92f * blue;
+  */
 
-  vec_t const lightness = (116.f * y) - 16.f;
-  vec_t const a         = 500.f * (x - y);
-  vec_t const b         = 200.f * (y - z);
-
-  return vec3(lightness, a, b);
+  return vec3_clamp(vec3(red, green, blue), vec3(0.f, 0.f, 0.f),
+                    vec3(1.f, 1.f, 1.f));
 }
 
 static vec3_t lab_to_xyz(vec3_t const lab) {
@@ -682,35 +678,31 @@ static vec3_t lab_to_xyz(vec3_t const lab) {
               M_COLOR_REF_Z * z);
 }
 
-static vec3_t xyz_to_rgb(vec3_t const xyz) {
-  vec_t const x = xyz.v[0] / 100.f;
-  vec_t const y = xyz.v[1] / 100.f;
-  vec_t const z = xyz.v[2] / 100.f;
+static vec3_t xyz_to_lab(vec3_t const xyz) {
+  vec_t x = (xyz.v[0] / M_COLOR_REF_X);
+  vec_t y = (xyz.v[1] / M_COLOR_REF_Y);
+  vec_t z = (xyz.v[2] / M_COLOR_REF_Z);
 
-  vec_t red   = x * 3.2406f + (y * -1.5372f) + z * (-0.4986f);
-  vec_t green = x * (-0.9689f) + y * 1.8758f + z * 0.0415f;
-  vec_t blue  = x * 0.0557f + y * (-0.2040f) + z * 1.0570f;
-
-  //  Gamma-correction
-  /*
-  if (red > 0.0031308f)
-    red = 1.055f * vec_pow(red, (1.0f / 2.4)) - 0.055f;
+  if (x > 0.008856f)
+    x = vec_pow(x, (1.f / 3.f));
   else
-    red = 12.92f * red;
+    x = (7.787f * x) + (16.f / 116.f);
 
-  if (green > 0.0031308f)
-    green = 1.055f * vec_pow(green, (1.0f / 2.4)) - 0.055f;
+  if (y > 0.008856f)
+    y = vec_pow(y, (1.f / 3.f));
   else
-    green = 12.92f * green;
+    y = (7.787f * y) + (16.f / 116.f);
 
-  if (blue > 0.0031308f)
-    blue = 1.055f * vec_pow(blue, (1.0f / 2.4)) - 0.055f;
+  if (z > 0.008856f)
+    z = vec_pow(z, (1.f / 3.f));
   else
-    blue = 12.92f * blue;
-  */
+    z = (7.787f * z) + (16.f / 116.f);
 
-  return vec3_clamp(vec3(red, green, blue), vec3(0.f, 0.f, 0.f),
-                    vec3(1.f, 1.f, 1.f));
+  vec_t const lightness = (116.f * y) - 16.f;
+  vec_t const a         = 500.f * (x - y);
+  vec_t const b         = 200.f * (y - z);
+
+  return vec3(lightness, a, b);
 }
 
 static vec3_t lab_to_lch(vec3_t const lab) {
@@ -747,6 +739,13 @@ static vec3_t lch_to_rgb(vec3_t const lch) {
   vec3_t const xyz = lab_to_xyz(lab);
 
   return xyz_to_rgb(xyz);
+}
+
+static vec4_t rgba_from_lcha(vec_t const lightness,
+                             const vec_t chroma, vec_t const hue,
+                             vec_t const alpha) {
+  vec3_t const rgb = lch_to_rgb(vec3(lightness, chroma, hue));
+  return vec4(rgb.v[0], rgb.v[1], rgb.v[2], alpha);
 }
 
 #ifdef __GNUC__

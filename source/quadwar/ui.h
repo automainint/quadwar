@@ -16,9 +16,11 @@ enum {
   UI_COLOR_PANEL_DISABLED,
   UI_COLOR_BUTTON_NORMAL,
   UI_COLOR_BUTTON_ACTIVE,
+  UI_COLOR_BUTTON_PRESSED,
   UI_COLOR_BUTTON_DISABLED,
   UI_COLOR_TEXT_NORMAL,
   UI_COLOR_TEXT_ACTIVE,
+  UI_COLOR_TEXT_PRESSED,
   UI_COLOR_TEXT_DISABLED,
   UI_COLORS_SIZE
 };
@@ -44,9 +46,13 @@ typedef struct {
 typedef KIT_DA(ui_widget_t) ui_widget_array_t;
 
 typedef struct {
-  unsigned is_changed : 1;
+  unsigned is_changed  : 1;
+  unsigned is_captured : 1;
+  unsigned has_cursor  : 1;
 
   ptrdiff_t cursor;
+  ptrdiff_t text_size;
+  ptrdiff_t spacing;
   vec4_t    colors[UI_COLORS_SIZE];
 
   ui_widget_array_t widgets;
@@ -55,7 +61,7 @@ typedef struct {
 void ui_init(ui_t *ui, kit_allocator_t alloc);
 void ui_destroy(ui_t *ui);
 
-void ui_mouse(ui_t *ui, ptrdiff_t x, ptrdiff_t y);
+void ui_motion(ui_t *ui, ptrdiff_t x, ptrdiff_t y);
 void ui_press(ui_t *ui);
 void ui_unpress(ui_t *ui);
 void ui_render(ui_t *ui);
