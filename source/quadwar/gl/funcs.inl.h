@@ -36,6 +36,7 @@ pfn_glGenBuffers qw_glGenBuffers = NULL;
 pfn_glGenFramebuffers qw_glGenFramebuffers = NULL;
 pfn_glGenTextures qw_glGenTextures = NULL;
 pfn_glGenVertexArrays qw_glGenVertexArrays = NULL;
+pfn_glGetError qw_glGetError = NULL;
 pfn_glGetIntegerv qw_glGetIntegerv = NULL;
 pfn_glGetProgramBinary qw_glGetProgramBinary = NULL;
 pfn_glGetProgramInfoLog qw_glGetProgramInfoLog = NULL;

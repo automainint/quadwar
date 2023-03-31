@@ -148,13 +148,13 @@ static vec_t  aspect_ratio  = 1.f;
 static mat4_t projection_matrix;
 
 static void graphics_shaders_cleanup(void) {
-  qw_glDeleteProgram(solid_program);
-  qw_glDeleteShader(solid_vertex);
-  qw_glDeleteShader(solid_fragment);
+  qwlog_glDeleteProgram(solid_program);
+  qwlog_glDeleteShader(solid_vertex);
+  qwlog_glDeleteShader(solid_fragment);
 
-  qw_glDeleteProgram(flat_program);
-  qw_glDeleteShader(flat_vertex);
-  qw_glDeleteShader(flat_fragment);
+  qwlog_glDeleteProgram(flat_program);
+  qwlog_glDeleteShader(flat_vertex);
+  qwlog_glDeleteShader(flat_fragment);
 }
 
 static string_t get_cache_folder(void) {
@@ -194,10 +194,10 @@ static kit_status_t graphics_load_shader(int   rebuild,
 
       printf("%s: Load cached shader program binary.\n", BS(name));
 
-      *prog = qw_glCreateProgram();
+      *prog = qwlog_glCreateProgram();
 
-      qw_glProgramBinary(*prog, (GLenum) binary_format, binary_data,
-                         binary_size);
+      qwlog_glProgramBinary(*prog, (GLenum) binary_format,
+                            binary_data, binary_size);
 
       kit_alloc_dispatch(ALLOC, KIT_DEALLOCATE, 0, 0, binary_data);
     }
@@ -206,55 +206,55 @@ static kit_status_t graphics_load_shader(int   rebuild,
   } else {
     printf("%s: Compile shader program.\n", BS(name));
 
-    *vert = qw_glCreateShader(GL_VERTEX_SHADER);
+    *vert = qwlog_glCreateShader(GL_VERTEX_SHADER);
 
-    qw_glShaderSource(*vert, 1, &src_vert, NULL);
-    qw_glCompileShader(*vert);
+    qwlog_glShaderSource(*vert, 1, &src_vert, NULL);
+    qwlog_glCompileShader(*vert);
 
     GLint status;
-    qw_glGetShaderiv(*vert, GL_COMPILE_STATUS, &status);
+    qwlog_glGetShaderiv(*vert, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  shader_log[1024];
       GLint shader_log_size = sizeof shader_log - 1;
-      qw_glGetShaderInfoLog(*vert, sizeof shader_log,
-                            &shader_log_size, shader_log);
+      qwlog_glGetShaderInfoLog(*vert, sizeof shader_log,
+                               &shader_log_size, shader_log);
       printf("%s: Vertex shader compilation failed.\n%*s\n", BS(name),
              shader_log_size, shader_log);
       result = QW_ERROR;
     }
 
-    *frag = qw_glCreateShader(GL_FRAGMENT_SHADER);
+    *frag = qwlog_glCreateShader(GL_FRAGMENT_SHADER);
 
-    qw_glShaderSource(*frag, 1, &src_frag, NULL);
-    qw_glCompileShader(*frag);
+    qwlog_glShaderSource(*frag, 1, &src_frag, NULL);
+    qwlog_glCompileShader(*frag);
 
-    qw_glGetShaderiv(*frag, GL_COMPILE_STATUS, &status);
+    qwlog_glGetShaderiv(*frag, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  shader_log[1024];
       GLint shader_log_size = sizeof shader_log - 1;
-      qw_glGetShaderInfoLog(*frag, sizeof shader_log,
-                            &shader_log_size, shader_log);
+      qwlog_glGetShaderInfoLog(*frag, sizeof shader_log,
+                               &shader_log_size, shader_log);
       printf("%s: Fragment shader compilation failed.\n%*s\n",
              BS(name), shader_log_size, shader_log);
       result = QW_ERROR;
     }
 
-    *prog = qw_glCreateProgram();
+    *prog = qwlog_glCreateProgram();
 
-    qw_glAttachShader(*prog, *vert);
-    qw_glAttachShader(*prog, *frag);
+    qwlog_glAttachShader(*prog, *vert);
+    qwlog_glAttachShader(*prog, *frag);
 
-    qw_glLinkProgram(*prog);
+    qwlog_glLinkProgram(*prog);
 
-    qw_glGetProgramiv(*prog, GL_LINK_STATUS, &status);
+    qwlog_glGetProgramiv(*prog, GL_LINK_STATUS, &status);
 
     if (status == GL_FALSE) {
       char  program_log[1024];
       GLint program_log_size = sizeof program_log - 1;
-      qw_glGetProgramInfoLog(*prog, sizeof program_log,
-                             &program_log_size, program_log);
+      qwlog_glGetProgramInfoLog(*prog, sizeof program_log,
+                                &program_log_size, program_log);
       printf("%s: Shader program link failed.\n%*s\n", BS(name),
              program_log_size, program_log);
       result = QW_ERROR;
@@ -263,8 +263,8 @@ static kit_status_t graphics_load_shader(int   rebuild,
       FILE *out = fopen(BS(cache_file), "wb");
 
       if (out != NULL) {
-        qw_glGetProgramiv(*prog, GL_PROGRAM_BINARY_LENGTH,
-                          &binary_size);
+        qwlog_glGetProgramiv(*prog, GL_PROGRAM_BINARY_LENGTH,
+                             &binary_size);
 
         binary_data = (uint8_t *) kit_alloc_dispatch(
             ALLOC, KIT_ALLOCATE, binary_size, 0, NULL);
@@ -272,9 +272,9 @@ static kit_status_t graphics_load_shader(int   rebuild,
         if (binary_data != NULL) {
           int written;
 
-          qw_glGetProgramBinary(*prog, binary_size, &written,
-                                (GLenum *) &binary_format,
-                                binary_data);
+          qwlog_glGetProgramBinary(*prog, binary_size, &written,
+                                   (GLenum *) &binary_format,
+                                   binary_data);
 
           printf("%s: Cache shader program binary.\n", BS(name));
 
@@ -315,21 +315,21 @@ static kit_status_t graphics_shaders_load(int rebuild) {
 
   DA_DESTROY(cache_folder);
 
-  qw_glBindAttribLocation(solid_program, 0, "in_position");
-  qw_glBindAttribLocation(solid_program, 1, "in_normal");
+  qwlog_glBindAttribLocation(solid_program, 0, "in_position");
+  qwlog_glBindAttribLocation(solid_program, 1, "in_normal");
 
-  qw_glBindAttribLocation(flat_program, 0, "in_position");
-  qw_glBindAttribLocation(flat_program, 1, "in_texcoord");
-  qw_glBindAttribLocation(flat_program, 2, "in_color");
+  qwlog_glBindAttribLocation(flat_program, 0, "in_position");
+  qwlog_glBindAttribLocation(flat_program, 1, "in_texcoord");
+  qwlog_glBindAttribLocation(flat_program, 2, "in_color");
 
-  u_view   = qw_glGetUniformLocation(solid_program, "u_view");
-  u_object = qw_glGetUniformLocation(solid_program, "u_object");
-  u_eye    = qw_glGetUniformLocation(solid_program, "u_eye");
-  u_light  = qw_glGetUniformLocation(solid_program, "u_light");
-  u_color  = qw_glGetUniformLocation(solid_program, "u_color");
+  u_view   = qwlog_glGetUniformLocation(solid_program, "u_view");
+  u_object = qwlog_glGetUniformLocation(solid_program, "u_object");
+  u_eye    = qwlog_glGetUniformLocation(solid_program, "u_eye");
+  u_light  = qwlog_glGetUniformLocation(solid_program, "u_light");
+  u_color  = qwlog_glGetUniformLocation(solid_program, "u_color");
 
-  u_screen  = qw_glGetUniformLocation(flat_program, "u_screen");
-  u_texture = qw_glGetUniformLocation(flat_program, "u_texture");
+  u_screen  = qwlog_glGetUniformLocation(flat_program, "u_screen");
+  u_texture = qwlog_glGetUniformLocation(flat_program, "u_texture");
 
   return result;
 }
@@ -341,14 +341,14 @@ static kit_status_t graphics_init(void) {
 
   ALLOC = kit_alloc_default();
 
-  qw_glGenTextures(1, &temp_texture);
+  qwlog_glGenTextures(1, &temp_texture);
 
-  qw_glBindTexture(GL_TEXTURE_2D, temp_texture);
-  qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                     GL_NEAREST);
-  qw_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                     GL_NEAREST);
-  qw_glBindTexture(GL_TEXTURE_2D, 0);
+  qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
+  qwlog_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                        GL_NEAREST);
+  qwlog_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                        GL_NEAREST);
+  qwlog_glBindTexture(GL_TEXTURE_2D, 0);
 
   return graphics_shaders_load(0);
 }
@@ -375,16 +375,16 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
   /*  Initialize mesh data.
    */
 
-  qw_glGenVertexArrays(1, &internal->vertex_array);
-  qw_glBindVertexArray(internal->vertex_array);
+  qwlog_glGenVertexArrays(1, &internal->vertex_array);
+  qwlog_glBindVertexArray(internal->vertex_array);
 
-  qw_glGenBuffers(1, &internal->vertex_buffer);
-  qw_glBindBuffer(GL_ARRAY_BUFFER, internal->vertex_buffer);
+  qwlog_glGenBuffers(1, &internal->vertex_buffer);
+  qwlog_glBindBuffer(GL_ARRAY_BUFFER, internal->vertex_buffer);
 
-  qw_glBufferData(GL_ARRAY_BUFFER,
-                  mesh->data.vertices.size *
-                      sizeof *mesh->data.vertices.values,
-                  mesh->data.vertices.values, GL_STATIC_DRAW);
+  qwlog_glBufferData(GL_ARRAY_BUFFER,
+                     mesh->data.vertices.size *
+                         sizeof *mesh->data.vertices.values,
+                     mesh->data.vertices.values, GL_STATIC_DRAW);
 
   internal->size = (GLsizei) mesh->data.vertices.size;
 
@@ -396,16 +396,18 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
   /*  Initialize vertex attributes.
    */
 
-  qw_glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t),
-                           OFFSET(vertex_t, position));
+  qwlog_glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                              sizeof(vertex_t),
+                              OFFSET(vertex_t, position));
 
-  qw_glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t),
-                           OFFSET(vertex_t, normal));
+  qwlog_glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                              sizeof(vertex_t),
+                              OFFSET(vertex_t, normal));
 
-  qw_glEnableVertexAttribArray(0);
-  qw_glEnableVertexAttribArray(1);
+  qwlog_glEnableVertexAttribArray(0);
+  qwlog_glEnableVertexAttribArray(1);
 
-  qw_glBindVertexArray(0);
+  qwlog_glBindVertexArray(0);
 
   mesh->id = n;
 
@@ -418,8 +420,8 @@ void graphics_rebuild_shaders(void) {
 
 void graphics_reset_mesh_data(void) {
   for (ptrdiff_t i = 0; i < mesh_array.size; i++) {
-    qw_glDeleteBuffers(1, &mesh_array.values[i].vertex_buffer);
-    qw_glDeleteVertexArrays(1, &mesh_array.values[i].vertex_array);
+    qwlog_glDeleteBuffers(1, &mesh_array.values[i].vertex_buffer);
+    qwlog_glDeleteVertexArrays(1, &mesh_array.values[i].vertex_array);
   }
 
   DA_DESTROY(mesh_array);
@@ -434,13 +436,13 @@ void graphics_viewport(int width, int height) {
                                        400.f);
 
   if (is_ready)
-    qw_glViewport(0, 0, width, height);
+    qwlog_glViewport(0, 0, width, height);
 }
 
 void graphics_clear(vec3_t color) {
-  qw_glClearColor(color.v[0], color.v[1], color.v[2], 1.f);
-  qw_glClearDepthf(1.f);
-  qw_glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  qwlog_glClearColor(color.v[0], color.v[1], color.v[2], 1.f);
+  qwlog_glClearDepthf(1.f);
+  qwlog_glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void graphics_cleanup(void) {
@@ -450,7 +452,7 @@ void graphics_cleanup(void) {
   graphics_shaders_cleanup();
   graphics_reset_mesh_data();
 
-  qw_glDeleteTextures(1, &temp_texture);
+  qwlog_glDeleteTextures(1, &temp_texture);
 
   is_ready = 0;
 }
@@ -461,35 +463,35 @@ void graphics_mode(int mode) {
 
   switch (mode) {
     case GRAPHICS_MESH:
-      qw_glEnable(GL_DEPTH_TEST);
-      qw_glDisable(GL_BLEND);
+      qwlog_glEnable(GL_DEPTH_TEST);
+      qwlog_glDisable(GL_BLEND);
 
-      qw_glBindVertexArray(0);
-      qw_glBindTexture(GL_TEXTURE_2D, 0);
+      qwlog_glBindVertexArray(0);
+      qwlog_glBindTexture(GL_TEXTURE_2D, 0);
 
-      qw_glDisableVertexAttribArray(0);
-      qw_glDisableVertexAttribArray(1);
-      qw_glDisableVertexAttribArray(2);
+      qwlog_glDisableVertexAttribArray(0);
+      qwlog_glDisableVertexAttribArray(1);
+      qwlog_glDisableVertexAttribArray(2);
 
-      qw_glUseProgram(solid_program);
+      qwlog_glUseProgram(solid_program);
 
       break;
 
     case GRAPHICS_IMMEDIATE:
-      qw_glDisable(GL_DEPTH_TEST);
-      qw_glUseProgram(flat_program);
+      qwlog_glDisable(GL_DEPTH_TEST);
+      qwlog_glUseProgram(flat_program);
 
-      qw_glEnable(GL_BLEND);
-      qw_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      qwlog_glEnable(GL_BLEND);
+      qwlog_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-      qw_glBindBuffer(GL_ARRAY_BUFFER, 0);
-      qw_glBindTexture(GL_TEXTURE_2D, temp_texture);
+      qwlog_glBindBuffer(GL_ARRAY_BUFFER, 0);
+      qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
 
-      qw_glBindVertexArray(0);
+      qwlog_glBindVertexArray(0);
 
-      qw_glEnableVertexAttribArray(0);
-      qw_glEnableVertexAttribArray(1);
-      qw_glEnableVertexAttribArray(2);
+      qwlog_glEnableVertexAttribArray(0);
+      qwlog_glEnableVertexAttribArray(1);
+      qwlog_glEnableVertexAttribArray(2);
 
       break;
 
@@ -518,15 +520,16 @@ void mesh_render(mesh_t *mesh, scene_t *scene) {
    */
   mat4_t const object = camera_to_mat4(scene->camera);
 
-  qw_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
-  qw_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
-  qw_glUniform3fv(u_eye, 1, scene->camera.position.v);
-  qw_glUniform3fv(u_light, 1, scene->light_position.v);
-  qw_glUniform4f(u_color, mesh->color.v[0], mesh->color.v[1],
-                 mesh->color.v[2], 1.f);
+  qwlog_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
+  qwlog_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
+  qwlog_glUniform3fv(u_eye, 1, scene->camera.position.v);
+  qwlog_glUniform3fv(u_light, 1, scene->light_position.v);
+  qwlog_glUniform4f(u_color, mesh->color.v[0], mesh->color.v[1],
+                    mesh->color.v[2], 1.f);
 
-  qw_glBindVertexArray(mesh_array.values[mesh->id].vertex_array);
-  qw_glDrawArrays(GL_TRIANGLES, 0, mesh_array.values[mesh->id].size);
+  qwlog_glBindVertexArray(mesh_array.values[mesh->id].vertex_array);
+  qwlog_glDrawArrays(GL_TRIANGLES, 0,
+                     mesh_array.values[mesh->id].size);
 }
 
 void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
@@ -558,19 +561,19 @@ void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     color.v[0], color.v[1], color.v[2], color.v[3]  //
   };
 
-  qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
-  qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-  qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
+  qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
+  qwlog_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+  qwlog_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
 
-  qw_glUniform2f(u_screen, (vec_t) screen_width,
-                 (vec_t) screen_height);
-  qw_glUniform1i(u_texture, 0);
+  qwlog_glUniform2f(u_screen, (vec_t) screen_width,
+                    (vec_t) screen_height);
+  qwlog_glUniform1i(u_texture, 0);
 
   uint8_t white[] = { 0xff, 0xff, 0xff, 0xff };
-  qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA,
-                  GL_UNSIGNED_BYTE, white);
+  qwlog_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, white);
 
-  qw_glDrawArrays(GL_TRIANGLES, 0, 6);
+  qwlog_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
@@ -611,21 +614,21 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     color.v[0], color.v[1], color.v[2], color.v[3]  //
   };
 
-  qw_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
-  qw_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-  qw_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
+  qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
+  qwlog_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+  qwlog_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
 
-  qw_glUniform2f(u_screen, (vec_t) screen_width,
-                 (vec_t) screen_height);
-  qw_glUniform1i(u_texture, 0);
+  qwlog_glUniform2f(u_screen, (vec_t) screen_width,
+                    (vec_t) screen_height);
+  qwlog_glUniform1i(u_texture, 0);
 
-  qw_glBindTexture(GL_TEXTURE_2D, temp_texture);
+  qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
 
-  qw_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width,
-                  image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                  image_data);
+  qwlog_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width,
+                     image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     image_data);
 
-  qw_glDrawArrays(GL_TRIANGLES, 0, 6);
+  qwlog_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 #define LCD_CHAR_WIDTH 5

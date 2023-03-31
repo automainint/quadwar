@@ -749,8 +749,7 @@ static vec4_t rgba_from_lcha(vec_t const lightness,
 }
 
 #ifdef __GNUC__
-#  pragma GCC pop_options
-
+#  pragma GCC            pop_options
 #  pragma GCC diagnostic pop
 #endif
 

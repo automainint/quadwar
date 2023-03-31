@@ -4,7 +4,8 @@ def main():
   import xml.etree.ElementTree
   import os, shutil
 
-  funcs_whitelist = ['glCreateProgram',
+  funcs_whitelist = ['glGetError',
+                     'glCreateProgram',
                      'glProgramBinary',
                      'glCreateShader',
                      'glShaderSource',
@@ -150,6 +151,16 @@ def main():
       s += adjust_arg(arg[0]) + arg[1]
     return '(' + s + ')'
 
+  def call_str(args):
+    if len(args) == 0:
+     return '()'
+    s = ''
+    for arg in args:
+      if len(s) > 0:
+        s += ', '
+      s += arg[1]
+    return '(' + s + ')'
+
   update_repo()
 
   gl_xml_path = os.path.join(gl_folder, 'xml', 'gl.xml')
@@ -280,7 +291,11 @@ def main():
 
   out.write('#ifndef QUADWAR_GL_DECLS_INL_H\n')
   out.write('#define QUADWAR_GL_DECLS_INL_H\n\n')
-  out.write('#include "types.inl.h"\n\n')
+  out.write('#include "types.inl.h"\n')
+  out.write('#include "enums.inl.h"\n')
+  out.write('#include <stdio.h>\n');
+  out.write('#include <string.h>\n');
+  out.write('\n');
 
   for f in funcs:
     out.write('typedef ' + adjust_arg(f[1]) + '(GL_API *' + 'pfn_' + f[0] + ')' + args_str(f[2]) + ';\n')
@@ -290,6 +305,49 @@ def main():
   for f in funcs:
     out.write('extern pfn_' + f[0] + ' qw_' + f[0] + ';\n')
 
+  out.write('\n');
+  out.write('static void qw_gl_log_error(char const *const f) {\n');
+  out.write('  if (qw_glGetError == NULL) {\n');
+  out.write('    printf("glGetError not found.\\n");\n');
+  out.write('    return;\n');
+  out.write('  }\n');
+  out.write('  GLenum e = qw_glGetError();\n');
+  out.write('  if (e != GL_NO_ERROR)\n');
+  out.write('    printf("%s failed: ", f);\n');
+  out.write('  switch (e) {\n');
+  out.write('    case GL_NO_ERROR:                                                                  break;\n');
+  out.write('    case GL_INVALID_ENUM:                  printf("Invalid enum.\\n");                  break;\n');
+  out.write('    case GL_INVALID_VALUE:                 printf("Invalid value.\\n");                 break;\n');
+  out.write('    case GL_INVALID_OPERATION:             printf("Invalid operation.\\n");             break;\n');
+  out.write('    case GL_INVALID_FRAMEBUFFER_OPERATION: printf("Invalid framebuffer operation.\\n"); break;\n');
+  out.write('    case GL_OUT_OF_MEMORY:                 printf("Out of memory.\\n");                 break;\n');
+  out.write('    case GL_STACK_UNDERFLOW:               printf("Stack underflow.\\n");               break;\n');
+  out.write('    case GL_STACK_OVERFLOW:                printf("Stack overflow.\\n");                break;\n');
+  out.write('    default:                               printf("Unknown error: %d\\n", (int) e);\n');
+  out.write('  }\n');
+  out.write('}\n');
+  out.write('\n');
+
+  for f in funcs:
+    out.write('static ' + adjust_arg(f[1]) + 'qwlog_' + f[0] + args_str(f[2]) + '{\n');
+    ret = f[1]
+    if ret != 'void ':
+      out.write('  ' + ret + 'result;\n');
+      out.write('  memset(&result, 0, sizeof result);\n');
+    out.write('  if (' + 'qw_' + f[0] + ' == NULL) {\n');
+    out.write('    printf("' + f[0] + ' not found.\\n");\n');
+    out.write('  } else {\n');
+    if ret != 'void ':
+      out.write('    result = ');
+    else:
+      out.write('    ');
+    out.write('qw_' + f[0] + call_str(f[2]) + ';\n');
+    out.write('    qw_gl_log_error("' + f[0] + '");\n');
+    out.write('  }\n');
+    if ret != 'void ':
+      out.write('  return result;\n');
+    out.write('}\n')
+
   out.write('\n')
   out.write('#endif\n')
 
@@ -298,7 +356,8 @@ def main():
   out.write('#ifndef QUADWAR_GL_FUNCS_INL_H\n')
   out.write('#define QUADWAR_GL_FUNCS_INL_H\n\n')
 
-  out.write('#include "decls.inl.h"\n\n')
+  out.write('#include "decls.inl.h"\n')
+  out.write('\n');
 
   for f in funcs:
     out.write('pfn_' + f[0] + ' qw_' + f[0] + ' = NULL;\n')

@@ -31,6 +31,7 @@ LOAD_(qw_glGenBuffers, "glGenBuffers");
 LOAD_(qw_glGenFramebuffers, "glGenFramebuffers");
 LOAD_(qw_glGenTextures, "glGenTextures");
 LOAD_(qw_glGenVertexArrays, "glGenVertexArrays");
+LOAD_(qw_glGetError, "glGetError");
 LOAD_(qw_glGetIntegerv, "glGetIntegerv");
 LOAD_(qw_glGetProgramBinary, "glGetProgramBinary");
 LOAD_(qw_glGetProgramInfoLog, "glGetProgramInfoLog");
