@@ -244,6 +244,15 @@ int main(int argc, char **argv) {
   if (audio != NULL)
     printf("Audio:    %s\n", audio);
 
+  GLint gl_extensions;
+  qw_glGetIntegerv(GL_NUM_EXTENSIONS, &gl_extensions);
+  if (gl_extensions > 0) {
+    printf("OpenGL extensions:\n");
+    for (GLint i = 0; i < gl_extensions; i++) {
+      printf("%s\n", qw_glGetStringi(GL_EXTENSIONS, i));
+    }
+  }
+
 #ifdef __EMSCRIPTEN__
   emscripten_set_fullscreenchange_callback("canvas", NULL, 0,
                                            fullscreen);

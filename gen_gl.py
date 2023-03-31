@@ -50,6 +50,8 @@ def main():
                      'glBindVertexArray',
                      'glDrawArrays',
                      'glGetString',
+                     'glGetStringi',
+                     'glGetIntegerv',
                      'glBlendFunc',
                      'glBlendFuncSeparate',
                      'glBlendColor',
