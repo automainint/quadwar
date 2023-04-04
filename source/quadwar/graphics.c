@@ -10,8 +10,7 @@
 
 static char const *const source_solid_vertex = //
     "#version 300 es\n"                        //
-    CODE_(uniform mat4 u_view;                 //
-          uniform mat4 u_object;               //
+    CODE_(uniform mat4 u_mvp_matrix;           //
 
           in vec3 in_position; //
           in vec3 in_normal;   //
@@ -23,9 +22,9 @@ static char const *const source_solid_vertex = //
             f_position = in_position; //
             f_normal   = in_normal;   //
 
-            gl_Position = (u_view * u_object) * vec4(in_position,
-                                                     1.0); //
-          }                                                //
+            gl_Position = u_mvp_matrix * vec4(in_position,
+                                              1.0); //
+          }                                         //
     );
 
 static char const *const source_solid_fragment = //
@@ -125,8 +124,7 @@ static GLuint solid_vertex;
 static GLuint solid_fragment;
 static GLuint solid_program;
 
-static GLint u_view;
-static GLint u_object;
+static GLint u_mvp_matrix;
 static GLint u_eye;
 static GLint u_light;
 static GLint u_color;
@@ -322,11 +320,11 @@ static kit_status_t graphics_shaders_load(int rebuild) {
   qwlog_glBindAttribLocation(flat_program, 1, "in_texcoord");
   qwlog_glBindAttribLocation(flat_program, 2, "in_color");
 
-  u_view   = qwlog_glGetUniformLocation(solid_program, "u_view");
-  u_object = qwlog_glGetUniformLocation(solid_program, "u_object");
-  u_eye    = qwlog_glGetUniformLocation(solid_program, "u_eye");
-  u_light  = qwlog_glGetUniformLocation(solid_program, "u_light");
-  u_color  = qwlog_glGetUniformLocation(solid_program, "u_color");
+  u_mvp_matrix = qwlog_glGetUniformLocation(solid_program,
+                                            "u_mvp_matrix");
+  u_eye        = qwlog_glGetUniformLocation(solid_program, "u_eye");
+  u_light      = qwlog_glGetUniformLocation(solid_program, "u_light");
+  u_color      = qwlog_glGetUniformLocation(solid_program, "u_color");
 
   u_screen  = qwlog_glGetUniformLocation(flat_program, "u_screen");
   u_texture = qwlog_glGetUniformLocation(flat_program, "u_texture");
@@ -518,10 +516,10 @@ void mesh_render(mesh_t *mesh, scene_t *scene) {
   /*  FIXME
    *  Compute the camera matrix beforehand.
    */
-  mat4_t const object = camera_to_mat4(scene->camera);
+  mat4_t const mvp = mat4_mul(projection_matrix,
+                              camera_to_mat4(scene->camera));
 
-  qwlog_glUniformMatrix4fv(u_view, 1, GL_FALSE, projection_matrix.v);
-  qwlog_glUniformMatrix4fv(u_object, 1, GL_FALSE, object.v);
+  qwlog_glUniformMatrix4fv(u_mvp_matrix, 1, GL_FALSE, mvp.v);
   qwlog_glUniform3fv(u_eye, 1, scene->camera.position.v);
   qwlog_glUniform3fv(u_light, 1, scene->light_position.v);
   qwlog_glUniform4f(u_color, mesh->color.v[0], mesh->color.v[1],

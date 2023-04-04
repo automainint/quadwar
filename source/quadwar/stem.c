@@ -305,7 +305,7 @@ int qw_frame(int64_t const time_elapsed, ptrdiff_t const fps) {
     scene.camera = camera_normal_local(
         scene.camera, world_up, camera_normal_factor * time_elapsed);
 
-  vec_t const hue = time / 5;
+  vec_t const hue = time / 50;
 
   color = lch_to_rgb(
       vec3(50.f, 50.f, (2.f * M_PI) * (hue - floorf(hue))));
