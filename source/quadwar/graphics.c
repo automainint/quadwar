@@ -124,18 +124,17 @@ static char const *const src_2d_texture_frag = //
     CODE_(                                     //
         precision highp float;                 //
 
-        uniform vec4 u_color; //
-                              // uniform sampler2D u_texture; //
+        uniform vec4      u_color;   //
+        uniform sampler2D u_texture; //
 
         in vec2 f_texcoord; //
 
         out vec4 out_color; //
 
-        void main(void) {      //
-          out_color = u_color; //
-          // out_color = u_color * texture(u_texture,
-          //                               f_texcoord); //
-        } //
+        void main(void) { //
+          out_color = u_color * texture(u_texture,
+                                        f_texcoord); //
+        }                                            //
     );
 
 typedef struct {
@@ -169,7 +168,7 @@ static GLuint shader_2d_texture_prog;
 
 static GLint u_2d_texture_screen;
 static GLint u_2d_texture_color;
-// static GLint u_2d_texture_texture;
+static GLint u_2d_texture_texture;
 
 static GLuint temp_texture;
 
@@ -201,12 +200,35 @@ static string_t get_cache_folder(void) {
   return result;
 }
 
-static kit_status_t graphics_load_shader(int   rebuild,
-                                         str_t cache_folder,
-                                         str_t name, GLuint *vert,
-                                         GLuint *frag, GLuint *prog,
-                                         char const *src_vert,
-                                         char const *src_frag) {
+static void bind_locations(int index) {
+  switch (index) {
+    case 0:
+      qwlog_glBindAttribLocation(shader_3d_solid_prog, 0,
+                                 "in_position");
+      qwlog_glBindAttribLocation(shader_3d_solid_prog, 1,
+                                 "in_normal");
+      break;
+
+    case 1:
+      qwlog_glBindAttribLocation(shader_2d_solid_prog, 0,
+                                 "in_position");
+      break;
+
+    case 2:
+      qwlog_glBindAttribLocation(shader_2d_texture_prog, 0,
+                                 "in_position");
+      qwlog_glBindAttribLocation(shader_2d_texture_prog, 1,
+                                 "in_texcoord");
+      break;
+
+    default:;
+  }
+}
+
+static kit_status_t graphics_load_shader(
+    int rebuild, str_t cache_folder, str_t name, GLuint *vert,
+    GLuint *frag, GLuint *prog, char const *src_vert,
+    char const *src_frag, int index) {
   kit_status_t result = KIT_OK;
 
   string_t cache_file = path_join(cache_folder, name, ALLOC);
@@ -284,6 +306,8 @@ static kit_status_t graphics_load_shader(int   rebuild,
     qwlog_glAttachShader(*prog, *vert);
     qwlog_glAttachShader(*prog, *frag);
 
+    bind_locations(index);
+
     qwlog_glLinkProgram(*prog);
 
     qwlog_glGetProgramiv(*prog, GL_LINK_STATUS, &status);
@@ -345,30 +369,20 @@ static kit_status_t graphics_shaders_load(int rebuild) {
   graphics_load_shader(
       rebuild, WRAP_STR(cache_folder), SZ("shader_3d_solid.bin"),
       &shader_3d_solid_vert, &shader_3d_solid_frag,
-      &shader_3d_solid_prog, src_3d_solid_vert, src_3d_solid_frag);
+      &shader_3d_solid_prog, src_3d_solid_vert, src_3d_solid_frag, 0);
 
   graphics_load_shader(
       rebuild, WRAP_STR(cache_folder), SZ("shader_2d_solid.bin"),
       &shader_2d_solid_vert, &shader_2d_solid_frag,
-      &shader_2d_solid_prog, src_2d_solid_vert, src_2d_solid_frag);
+      &shader_2d_solid_prog, src_2d_solid_vert, src_2d_solid_frag, 1);
 
   graphics_load_shader(
       rebuild, WRAP_STR(cache_folder), SZ("shader_2d_texture.bin"),
       &shader_2d_texture_vert, &shader_2d_texture_frag,
       &shader_2d_texture_prog, src_2d_texture_vert,
-      src_2d_texture_frag);
+      src_2d_texture_frag, 2);
 
   DA_DESTROY(cache_folder);
-
-  qwlog_glBindAttribLocation(shader_3d_solid_prog, 0, "in_position");
-  qwlog_glBindAttribLocation(shader_3d_solid_prog, 1, "in_normal");
-
-  qwlog_glBindAttribLocation(shader_2d_solid_prog, 0, "in_position");
-
-  qwlog_glBindAttribLocation(shader_2d_texture_prog, 0,
-                             "in_position");
-  qwlog_glBindAttribLocation(shader_2d_texture_prog, 1,
-                             "in_texcoord");
 
   u_3d_solid_mvp_matrix = qwlog_glGetUniformLocation(
       shader_3d_solid_prog, "u_mvp_matrix");
@@ -388,8 +402,8 @@ static kit_status_t graphics_shaders_load(int rebuild) {
       shader_2d_texture_prog, "u_screen");
   u_2d_texture_color = qwlog_glGetUniformLocation(
       shader_2d_texture_prog, "u_color");
-  //  u_2d_texture_texture = qwlog_glGetUniformLocation(
-  //      shader_2d_texture_prog, "u_texture");
+  u_2d_texture_texture = qwlog_glGetUniformLocation(
+      shader_2d_texture_prog, "u_texture");
 
   return result;
 }
@@ -651,14 +665,14 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
   qwlog_glUniform2f(u_2d_texture_screen, (vec_t) screen_width,
                     (vec_t) screen_height);
   qwlog_glUniform4fv(u_2d_texture_color, 1, color.v);
-  //  qwlog_glUniform1i(u_2d_texture_texture, 0);
+  qwlog_glUniform1i(u_2d_texture_texture, 0);
 
-  //  qwlog_glActiveTexture(GL_TEXTURE0);
-  //  qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
+  qwlog_glActiveTexture(GL_TEXTURE0);
+  qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
 
-  //  qwlog_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width,
-  //                     image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-  //                     image_data);
+  qwlog_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width,
+                     image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     image_data);
 
   qwlog_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
