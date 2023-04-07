@@ -8,9 +8,9 @@
 
 #define OFFSET(a, b) (void *) offsetof(a, b)
 
-static char const *const source_solid_vertex = //
-    "#version 300 es\n"                        //
-    CODE_(uniform mat4 u_mvp_matrix;           //
+static char const *const src_3d_solid_vert = //
+    "#version 300 es\n"                      //
+    CODE_(uniform mat4 u_mvp_matrix;         //
 
           in vec3 in_position; //
           in vec3 in_normal;   //
@@ -27,10 +27,10 @@ static char const *const source_solid_vertex = //
           }                                         //
     );
 
-static char const *const source_solid_fragment = //
-    "#version 300 es\n"                          //
-    CODE_(                                       //
-        precision highp float;                   //
+static char const *const src_3d_solid_frag = //
+    "#version 300 es\n"                      //
+    CODE_(                                   //
+        precision highp float;               //
 
         uniform vec3 u_eye;   //
         uniform vec3 u_light; //
@@ -70,20 +70,46 @@ static char const *const source_solid_fragment = //
         }                           //
     );
 
-static char const *const source_flat_vertex = //
-    "#version 300 es\n"                       //
-    CODE_(uniform vec2 u_screen;              //
+static char const *const src_2d_solid_vert = //
+    "#version 300 es\n"                      //
+    CODE_(uniform vec2 u_screen;             //
+
+          in vec2 in_position; //
+
+          void main(void) { //
+            gl_Position = vec4(
+                -1.0 + 2.0 * in_position.x / u_screen.x, //
+                1.0 - 2.0 * in_position.y / u_screen.y,  //
+                0.0,                                     //
+                1.0);                                    //
+          }                                              //
+    );
+
+static char const *const src_2d_solid_frag = //
+    "#version 300 es\n"                      //
+    CODE_(                                   //
+        precision highp float;               //
+
+        uniform vec4 u_color; //
+
+        out vec4 out_color; //
+
+        void main(void) {      //
+          out_color = u_color; //
+        }                      //
+    );
+
+static char const *const src_2d_texture_vert = //
+    "#version 300 es\n"                        //
+    CODE_(uniform vec2 u_screen;               //
 
           in vec2 in_position; //
           in vec2 in_texcoord; //
-          in vec4 in_color;    //
 
           out vec2 f_texcoord; //
-          out vec4 f_color;    //
 
           void main(void) {           //
             f_texcoord = in_texcoord; //
-            f_color    = in_color;    //
 
             gl_Position = vec4(
                 -1.0 + 2.0 * in_position.x / u_screen.x, //
@@ -93,20 +119,20 @@ static char const *const source_flat_vertex = //
           }                                              //
     );
 
-static char const *const source_flat_fragment = //
-    "#version 300 es\n"                         //
-    CODE_(                                      //
-        precision highp float;                  //
+static char const *const src_2d_texture_frag = //
+    "#version 300 es\n"                        //
+    CODE_(                                     //
+        precision highp float;                 //
 
+        uniform vec4      u_color;   //
         uniform sampler2D u_texture; //
 
         in vec2 f_texcoord; //
-        in vec4 f_color;    //
 
         out vec4 out_color; //
 
         void main(void) { //
-          out_color = f_color * texture(u_texture,
+          out_color = u_color * texture(u_texture,
                                         f_texcoord); //
         }                                            //
     );
@@ -120,23 +146,31 @@ typedef struct {
 static kit_allocator_t ALLOC;
 static int             is_ready = 0;
 
-static GLuint solid_vertex;
-static GLuint solid_fragment;
-static GLuint solid_program;
+static GLuint shader_3d_solid_vert;
+static GLuint shader_3d_solid_frag;
+static GLuint shader_3d_solid_prog;
 
-static GLint u_mvp_matrix;
-static GLint u_eye;
-static GLint u_light;
-static GLint u_color;
+static GLint u_3d_solid_mvp_matrix;
+static GLint u_3d_solid_eye;
+static GLint u_3d_solid_light;
+static GLint u_3d_solid_color;
 
-static GLuint flat_vertex;
-static GLuint flat_fragment;
-static GLuint flat_program;
+static GLuint shader_2d_solid_vert;
+static GLuint shader_2d_solid_frag;
+static GLuint shader_2d_solid_prog;
+
+static GLint u_2d_solid_screen;
+static GLint u_2d_solid_color;
+
+static GLuint shader_2d_texture_vert;
+static GLuint shader_2d_texture_frag;
+static GLuint shader_2d_texture_prog;
+
+static GLint u_2d_texture_screen;
+static GLint u_2d_texture_color;
+static GLint u_2d_texture_texture;
 
 static GLuint temp_texture;
-
-static GLint u_screen;
-static GLint u_texture;
 
 static DA(mesh_internal_t) mesh_array;
 
@@ -146,13 +180,17 @@ static vec_t  aspect_ratio  = 1.f;
 static mat4_t projection_matrix;
 
 static void graphics_shaders_cleanup(void) {
-  qwlog_glDeleteProgram(solid_program);
-  qwlog_glDeleteShader(solid_vertex);
-  qwlog_glDeleteShader(solid_fragment);
+  qwlog_glDeleteProgram(shader_3d_solid_prog);
+  qwlog_glDeleteShader(shader_3d_solid_vert);
+  qwlog_glDeleteShader(shader_3d_solid_frag);
 
-  qwlog_glDeleteProgram(flat_program);
-  qwlog_glDeleteShader(flat_vertex);
-  qwlog_glDeleteShader(flat_fragment);
+  qwlog_glDeleteProgram(shader_2d_solid_prog);
+  qwlog_glDeleteShader(shader_2d_solid_vert);
+  qwlog_glDeleteShader(shader_2d_solid_frag);
+
+  qwlog_glDeleteProgram(shader_2d_texture_prog);
+  qwlog_glDeleteShader(shader_2d_texture_vert);
+  qwlog_glDeleteShader(shader_2d_texture_frag);
 }
 
 static string_t get_cache_folder(void) {
@@ -301,33 +339,54 @@ static kit_status_t graphics_shaders_load(int rebuild) {
   string_t cache_folder = get_cache_folder();
   file_create_folder_recursive(WRAP_STR(cache_folder));
 
-  graphics_load_shader(rebuild, WRAP_STR(cache_folder),
-                       SZ("shader_solid.bin"), &solid_vertex,
-                       &solid_fragment, &solid_program,
-                       source_solid_vertex, source_solid_fragment);
+  graphics_load_shader(
+      rebuild, WRAP_STR(cache_folder), SZ("shader_3d_solid.bin"),
+      &shader_3d_solid_vert, &shader_3d_solid_frag,
+      &shader_3d_solid_prog, src_3d_solid_vert, src_3d_solid_frag);
 
-  graphics_load_shader(rebuild, WRAP_STR(cache_folder),
-                       SZ("shader_flat.bin"), &flat_vertex,
-                       &flat_fragment, &flat_program,
-                       source_flat_vertex, source_flat_fragment);
+  graphics_load_shader(
+      rebuild, WRAP_STR(cache_folder), SZ("shader_2d_solid.bin"),
+      &shader_2d_solid_vert, &shader_2d_solid_frag,
+      &shader_2d_solid_prog, src_2d_solid_vert, src_2d_solid_frag);
+
+  graphics_load_shader(
+      rebuild, WRAP_STR(cache_folder), SZ("shader_2d_texture.bin"),
+      &shader_2d_texture_vert, &shader_2d_texture_frag,
+      &shader_2d_texture_prog, src_2d_texture_vert,
+      src_2d_texture_frag);
 
   DA_DESTROY(cache_folder);
 
-  qwlog_glBindAttribLocation(solid_program, 0, "in_position");
-  qwlog_glBindAttribLocation(solid_program, 1, "in_normal");
+  qwlog_glBindAttribLocation(shader_3d_solid_prog, 0, "in_position");
+  qwlog_glBindAttribLocation(shader_3d_solid_prog, 1, "in_normal");
 
-  qwlog_glBindAttribLocation(flat_program, 0, "in_position");
-  qwlog_glBindAttribLocation(flat_program, 1, "in_texcoord");
-  qwlog_glBindAttribLocation(flat_program, 2, "in_color");
+  qwlog_glBindAttribLocation(shader_2d_solid_prog, 0, "in_position");
 
-  u_mvp_matrix = qwlog_glGetUniformLocation(solid_program,
-                                            "u_mvp_matrix");
-  u_eye        = qwlog_glGetUniformLocation(solid_program, "u_eye");
-  u_light      = qwlog_glGetUniformLocation(solid_program, "u_light");
-  u_color      = qwlog_glGetUniformLocation(solid_program, "u_color");
+  qwlog_glBindAttribLocation(shader_2d_texture_prog, 0,
+                             "in_position");
+  qwlog_glBindAttribLocation(shader_2d_texture_prog, 1,
+                             "in_texcoord");
 
-  u_screen  = qwlog_glGetUniformLocation(flat_program, "u_screen");
-  u_texture = qwlog_glGetUniformLocation(flat_program, "u_texture");
+  u_3d_solid_mvp_matrix = qwlog_glGetUniformLocation(
+      shader_3d_solid_prog, "u_mvp_matrix");
+  u_3d_solid_eye   = qwlog_glGetUniformLocation(shader_3d_solid_prog,
+                                                "u_eye");
+  u_3d_solid_light = qwlog_glGetUniformLocation(shader_3d_solid_prog,
+                                                "u_light");
+  u_3d_solid_color = qwlog_glGetUniformLocation(shader_3d_solid_prog,
+                                                "u_color");
+
+  u_2d_solid_screen = qwlog_glGetUniformLocation(shader_2d_solid_prog,
+                                                 "u_screen");
+  u_2d_solid_color  = qwlog_glGetUniformLocation(shader_2d_solid_prog,
+                                                 "u_color");
+
+  u_2d_texture_screen = qwlog_glGetUniformLocation(
+      shader_2d_texture_prog, "u_screen");
+  u_2d_texture_color = qwlog_glGetUniformLocation(
+      shader_2d_texture_prog, "u_color");
+  u_2d_texture_texture = qwlog_glGetUniformLocation(
+      shader_2d_texture_prog, "u_texture");
 
   return result;
 }
@@ -404,6 +463,7 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
 
   qwlog_glEnableVertexAttribArray(0);
   qwlog_glEnableVertexAttribArray(1);
+  qwlog_glDisableVertexAttribArray(2);
 
   qwlog_glBindVertexArray(0);
 
@@ -467,17 +527,12 @@ void graphics_mode(int mode) {
       qwlog_glBindVertexArray(0);
       qwlog_glBindTexture(GL_TEXTURE_2D, 0);
 
-      qwlog_glDisableVertexAttribArray(0);
-      qwlog_glDisableVertexAttribArray(1);
-      qwlog_glDisableVertexAttribArray(2);
-
-      qwlog_glUseProgram(solid_program);
+      qwlog_glUseProgram(shader_3d_solid_prog);
 
       break;
 
     case GRAPHICS_IMMEDIATE:
       qwlog_glDisable(GL_DEPTH_TEST);
-      qwlog_glUseProgram(flat_program);
 
       qwlog_glEnable(GL_BLEND);
       qwlog_glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -486,10 +541,6 @@ void graphics_mode(int mode) {
       qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
 
       qwlog_glBindVertexArray(0);
-
-      qwlog_glEnableVertexAttribArray(0);
-      qwlog_glEnableVertexAttribArray(1);
-      qwlog_glEnableVertexAttribArray(2);
 
       break;
 
@@ -519,11 +570,11 @@ void mesh_render(mesh_t *mesh, scene_t *scene) {
   mat4_t const mvp = mat4_mul(projection_matrix,
                               camera_to_mat4(scene->camera));
 
-  qwlog_glUniformMatrix4fv(u_mvp_matrix, 1, GL_FALSE, mvp.v);
-  qwlog_glUniform3fv(u_eye, 1, scene->camera.position.v);
-  qwlog_glUniform3fv(u_light, 1, scene->light_position.v);
-  qwlog_glUniform4f(u_color, mesh->color.v[0], mesh->color.v[1],
-                    mesh->color.v[2], 1.f);
+  qwlog_glUniformMatrix4fv(u_3d_solid_mvp_matrix, 1, GL_FALSE, mvp.v);
+  qwlog_glUniform3fv(u_3d_solid_eye, 1, scene->camera.position.v);
+  qwlog_glUniform3fv(u_3d_solid_light, 1, scene->light_position.v);
+  qwlog_glUniform4f(u_3d_solid_color, mesh->color.v[0],
+                    mesh->color.v[1], mesh->color.v[2], 1.f);
 
   qwlog_glBindVertexArray(mesh_array.values[mesh->id].vertex_array);
   qwlog_glDrawArrays(GL_TRIANGLES, 0,
@@ -541,35 +592,17 @@ void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     x,         y + height  //
   };
 
-  vec_t const texcoord[] = {
-    0.f, 0.f, //
-    1.f, 0.f, //
-    1.f, 1.f, //
-    0.f, 0.f, //
-    1.f, 1.f, //
-    0.f, 1.f  //
-  };
-
-  vec_t const color_[] = {
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3]  //
-  };
-
   qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
-  qwlog_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-  qwlog_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
 
-  qwlog_glUniform2f(u_screen, (vec_t) screen_width,
+  qwlog_glEnableVertexAttribArray(0);
+  qwlog_glDisableVertexAttribArray(1);
+  qwlog_glDisableVertexAttribArray(2);
+
+  qwlog_glUseProgram(shader_2d_solid_prog);
+
+  qwlog_glUniform2f(u_2d_solid_screen, (vec_t) screen_width,
                     (vec_t) screen_height);
-  qwlog_glUniform1i(u_texture, 0);
-
-  uint8_t white[] = { 0xff, 0xff, 0xff, 0xff };
-  qwlog_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, white);
+  qwlog_glUniform4fv(u_2d_solid_color, 1, color.v);
 
   qwlog_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
@@ -603,22 +636,19 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     0.f, 1.f  //
   };
 
-  vec_t const color_[] = {
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3], //
-    color.v[0], color.v[1], color.v[2], color.v[3]  //
-  };
-
   qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
   qwlog_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-  qwlog_glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, color_);
 
-  qwlog_glUniform2f(u_screen, (vec_t) screen_width,
+  qwlog_glEnableVertexAttribArray(0);
+  qwlog_glEnableVertexAttribArray(1);
+  qwlog_glDisableVertexAttribArray(2);
+
+  qwlog_glUseProgram(shader_2d_texture_prog);
+
+  qwlog_glUniform2f(u_2d_texture_screen, (vec_t) screen_width,
                     (vec_t) screen_height);
-  qwlog_glUniform1i(u_texture, 0);
+  qwlog_glUniform4fv(u_2d_texture_color, 1, color.v);
+  qwlog_glUniform1i(u_2d_texture_texture, 0);
 
   qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
 
