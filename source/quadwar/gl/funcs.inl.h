@@ -3,6 +3,7 @@
 
 #include "decls.inl.h"
 
+pfn_glActiveTexture qw_glActiveTexture = NULL;
 pfn_glAttachShader qw_glAttachShader = NULL;
 pfn_glBindAttribLocation qw_glBindAttribLocation = NULL;
 pfn_glBindBuffer qw_glBindBuffer = NULL;

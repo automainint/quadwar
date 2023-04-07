@@ -1,3 +1,4 @@
+LOAD_(qw_glActiveTexture, "glActiveTexture");
 LOAD_(qw_glAttachShader, "glAttachShader");
 LOAD_(qw_glBindAttribLocation, "glBindAttribLocation");
 LOAD_(qw_glBindBuffer, "glBindBuffer");

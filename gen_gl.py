@@ -67,7 +67,8 @@ def main():
                      'glTexImage2D',
                      'glTexImage3D',
                      'glTexParameteri',
-                     'glPixelStorei']
+                     'glPixelStorei',
+                     'glActiveTexture']
 
   folder = os.path.join('source', 'quadwar', 'gl')
   gl_folder = '.gen_gl'
@@ -75,7 +76,7 @@ def main():
   def update_repo():
     if os.path.exists(gl_folder):
       os.chdir(gl_folder)
-      os.system('git pull --quiet --depth 1 --ff-only')
+      os.system('git pull --quiet --depth 1')
       os.chdir('..')
     else:
       url = 'https://github.com/KhronosGroup/OpenGL-Registry'

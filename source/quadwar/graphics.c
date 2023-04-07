@@ -124,17 +124,18 @@ static char const *const src_2d_texture_frag = //
     CODE_(                                     //
         precision highp float;                 //
 
-        uniform vec4      u_color;   //
-        uniform sampler2D u_texture; //
+        uniform vec4 u_color; //
+                              // uniform sampler2D u_texture; //
 
         in vec2 f_texcoord; //
 
         out vec4 out_color; //
 
-        void main(void) { //
-          out_color = u_color * texture(u_texture,
-                                        f_texcoord); //
-        }                                            //
+        void main(void) {      //
+          out_color = u_color; //
+          // out_color = u_color * texture(u_texture,
+          //                               f_texcoord); //
+        } //
     );
 
 typedef struct {
@@ -168,7 +169,7 @@ static GLuint shader_2d_texture_prog;
 
 static GLint u_2d_texture_screen;
 static GLint u_2d_texture_color;
-static GLint u_2d_texture_texture;
+// static GLint u_2d_texture_texture;
 
 static GLuint temp_texture;
 
@@ -224,6 +225,7 @@ static kit_status_t graphics_load_shader(int   rebuild,
 
     binary_data = (uint8_t *) kit_alloc_dispatch(
         ALLOC, KIT_ALLOCATE, binary_size, 0, NULL);
+    assert(binary_data != NULL);
 
     if (binary_data != NULL) {
       fread(binary_data, 1, binary_size, in);
@@ -304,6 +306,7 @@ static kit_status_t graphics_load_shader(int   rebuild,
 
         binary_data = (uint8_t *) kit_alloc_dispatch(
             ALLOC, KIT_ALLOCATE, binary_size, 0, NULL);
+        assert(binary_data != NULL);
 
         if (binary_data != NULL) {
           int written;
@@ -385,8 +388,8 @@ static kit_status_t graphics_shaders_load(int rebuild) {
       shader_2d_texture_prog, "u_screen");
   u_2d_texture_color = qwlog_glGetUniformLocation(
       shader_2d_texture_prog, "u_color");
-  u_2d_texture_texture = qwlog_glGetUniformLocation(
-      shader_2d_texture_prog, "u_texture");
+  //  u_2d_texture_texture = qwlog_glGetUniformLocation(
+  //      shader_2d_texture_prog, "u_texture");
 
   return result;
 }
@@ -453,6 +456,9 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
   /*  Initialize vertex attributes.
    */
 
+  qwlog_glEnableVertexAttribArray(0);
+  qwlog_glEnableVertexAttribArray(1);
+
   qwlog_glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
                               sizeof(vertex_t),
                               OFFSET(vertex_t, position));
@@ -460,10 +466,6 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
   qwlog_glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
                               sizeof(vertex_t),
                               OFFSET(vertex_t, normal));
-
-  qwlog_glEnableVertexAttribArray(0);
-  qwlog_glEnableVertexAttribArray(1);
-  qwlog_glDisableVertexAttribArray(2);
 
   qwlog_glBindVertexArray(0);
 
@@ -529,6 +531,9 @@ void graphics_mode(int mode) {
 
       qwlog_glUseProgram(shader_3d_solid_prog);
 
+      qwlog_glDisableVertexAttribArray(0);
+      qwlog_glDisableVertexAttribArray(1);
+
       break;
 
     case GRAPHICS_IMMEDIATE:
@@ -592,11 +597,10 @@ void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     x,         y + height  //
   };
 
-  qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
-
   qwlog_glEnableVertexAttribArray(0);
   qwlog_glDisableVertexAttribArray(1);
-  qwlog_glDisableVertexAttribArray(2);
+
+  qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
 
   qwlog_glUseProgram(shader_2d_solid_prog);
 
@@ -636,25 +640,25 @@ void im_draw_pixels(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
     0.f, 1.f  //
   };
 
-  qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
-  qwlog_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-
   qwlog_glEnableVertexAttribArray(0);
   qwlog_glEnableVertexAttribArray(1);
-  qwlog_glDisableVertexAttribArray(2);
+
+  qwlog_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, position);
+  qwlog_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
 
   qwlog_glUseProgram(shader_2d_texture_prog);
 
   qwlog_glUniform2f(u_2d_texture_screen, (vec_t) screen_width,
                     (vec_t) screen_height);
   qwlog_glUniform4fv(u_2d_texture_color, 1, color.v);
-  qwlog_glUniform1i(u_2d_texture_texture, 0);
+  //  qwlog_glUniform1i(u_2d_texture_texture, 0);
 
-  qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
+  //  qwlog_glActiveTexture(GL_TEXTURE0);
+  //  qwlog_glBindTexture(GL_TEXTURE_2D, temp_texture);
 
-  qwlog_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width,
-                     image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                     image_data);
+  //  qwlog_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width,
+  //                     image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+  //                     image_data);
 
   qwlog_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
@@ -777,6 +781,7 @@ void im_draw_text(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
 
   uint8_t *pixels = (uint8_t *) kit_alloc_dispatch(
       ALLOC, KIT_ALLOCATE, line_size * LCD_CHAR_HEIGHT * 4, 0, NULL);
+  assert(pixels != NULL);
 
   if (pixels == NULL)
     return;

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef void (GL_API *pfn_glActiveTexture)(GLenum texture);
 typedef void (GL_API *pfn_glAttachShader)(GLuint program, GLuint shader);
 typedef void (GL_API *pfn_glBindAttribLocation)(GLuint program, GLuint index, const GLchar *name);
 typedef void (GL_API *pfn_glBindBuffer)(GLenum target, GLuint buffer);
@@ -68,6 +69,7 @@ typedef void (GL_API *pfn_glUseProgram)(GLuint program);
 typedef void (GL_API *pfn_glVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
 typedef void (GL_API *pfn_glViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
 
+extern pfn_glActiveTexture qw_glActiveTexture;
 extern pfn_glAttachShader qw_glAttachShader;
 extern pfn_glBindAttribLocation qw_glBindAttribLocation;
 extern pfn_glBindBuffer qw_glBindBuffer;
@@ -151,6 +153,14 @@ static void qw_gl_log_error(char const *const f) {
   }
 }
 
+static void qwlog_glActiveTexture(GLenum texture){
+  if (qw_glActiveTexture == NULL) {
+    printf("glActiveTexture not found.\n");
+  } else {
+    qw_glActiveTexture(texture);
+    qw_gl_log_error("glActiveTexture");
+  }
+}
 static void qwlog_glAttachShader(GLuint program, GLuint shader){
   if (qw_glAttachShader == NULL) {
     printf("glAttachShader not found.\n");
