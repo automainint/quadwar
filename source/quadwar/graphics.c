@@ -138,6 +138,7 @@ static char const *const src_2d_texture_frag = //
     );
 
 typedef struct {
+  int     is_ready;
   GLuint  vertex_array;
   GLuint  vertex_buffer;
   GLsizei size;
@@ -432,7 +433,8 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
 
   if (mesh == NULL)
     return QW_ERROR;
-  if (mesh->id >= 0 && mesh->id < mesh_array.size)
+  if (mesh->id >= 0 && mesh->id < mesh_array.size &&
+      mesh_array.values[mesh->id].is_ready)
     return KIT_OK;
 
   if (mesh_array.values == NULL)
@@ -483,6 +485,8 @@ static kit_status_t mesh_init_internal(mesh_t *mesh) {
 
   qwlog_glBindVertexArray(0);
 
+  internal->is_ready = 1;
+
   mesh->id = n;
 
   return KIT_OK;
@@ -493,10 +497,12 @@ void graphics_rebuild_shaders(void) {
 }
 
 void graphics_reset_mesh_data(void) {
-  for (ptrdiff_t i = 0; i < mesh_array.size; i++) {
-    qwlog_glDeleteBuffers(1, &mesh_array.values[i].vertex_buffer);
-    qwlog_glDeleteVertexArrays(1, &mesh_array.values[i].vertex_array);
-  }
+  for (ptrdiff_t i = 0; i < mesh_array.size; i++)
+    if (mesh_array.values[i].is_ready) {
+      qwlog_glDeleteBuffers(1, &mesh_array.values[i].vertex_buffer);
+      qwlog_glDeleteVertexArrays(1,
+                                 &mesh_array.values[i].vertex_array);
+    }
 
   DA_DESTROY(mesh_array);
   memset(&mesh_array, 0, sizeof mesh_array);
@@ -567,17 +573,44 @@ void graphics_mode(int mode) {
   }
 }
 
-void mesh_init(mesh_t *mesh, kit_allocator_t alloc) {
+void mesh_init(mesh_t *mesh) {
+  assert(mesh != NULL);
+
+  if (graphics_init() != KIT_OK)
+    return;
+
   memset(mesh, 0, sizeof *mesh);
-  DA_INIT(mesh->data.vertices, 0, alloc);
+  DA_INIT(mesh->data.vertices, 0, ALLOC);
   mesh->id = -1;
 }
 
 void mesh_destroy(mesh_t *mesh) {
+  assert(mesh != NULL);
+
   DA_DESTROY(mesh->data.vertices);
 }
 
+void mesh_reset(mesh_t *mesh) {
+  assert(mesh != NULL);
+
+  if (graphics_init() != KIT_OK)
+    return;
+  if (mesh->id < 0 || mesh->id >= mesh_array.size)
+    return;
+  if (!mesh_array.values[mesh->id].is_ready)
+    return;
+
+  qwlog_glDeleteBuffers(1,
+                        &mesh_array.values[mesh->id].vertex_buffer);
+  qwlog_glDeleteVertexArrays(
+      1, &mesh_array.values[mesh->id].vertex_array);
+  mesh_array.values[mesh->id].is_ready = 0;
+}
+
 void mesh_render(mesh_t *mesh, scene_t *scene) {
+  assert(mesh != NULL);
+  assert(scene != NULL);
+
   if (graphics_init() != KIT_OK)
     return;
   if (mesh_init_internal(mesh) != KIT_OK)

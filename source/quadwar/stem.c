@@ -185,7 +185,7 @@ void qw_init(void) {
 
   memcpy(ui.widgets.values[1].text.values, "Button", 6);
 
-  mesh_init(&world, kit_alloc_default());
+  mesh_init(&world);
   DA_RESIZE(world.data.vertices, MAP_SIZE_X * MAP_SIZE_Y * 6);
   if (world.data.vertices.size != MAP_SIZE_X * MAP_SIZE_Y * 6) {
     printf("Bad alloc.\n");

@@ -48,8 +48,9 @@ void graphics_clear(vec3_t color);
 void graphics_cleanup(void);
 void graphics_mode(int mode);
 
-void mesh_init(mesh_t *mesh, kit_allocator_t alloc);
+void mesh_init(mesh_t *mesh);
 void mesh_destroy(mesh_t *mesh);
+void mesh_reset(mesh_t *mesh);
 void mesh_render(mesh_t *mesh, scene_t *scene);
 
 void im_draw_rect(ptrdiff_t x, ptrdiff_t y, ptrdiff_t width,
